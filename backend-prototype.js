@@ -75,12 +75,12 @@ Backend.Prototype.Form = {
 
 Backend.Prototype.Table = {
     formatters: {
-        date: function(inFormat, outFormat, value) {
+        date: function(inFormat, outFormat, value, id, row) {
             d = Date.parseDate(value, inFormat);
             return d.print(outFormat);
         },
-        dateRu: function (locale, value) {
-            return Backend.Prototype.Table.formatters.date("%Y-%m-%d", "%d %b %Y", value);
+        dateRu: function (value, id, row) {
+            return Backend.Prototype.Table.formatters.date('%Y-%m-%d', '%d %b %Y', value);
         }
     },
 
@@ -141,15 +141,15 @@ Backend.Prototype.Table = {
 Backend.Prototype.Select = {
     loadOptions: function(select, options)
     {
-        defaultOptions = {
+        options = Object.extend({
             itemsProperty: 'items', 
             valueField: 'id', 
             labelField: 'title',
             before: '',
             after: '',
             onSuccess: Prototype.emptyFunction
-        };
-        var $options = $H(defaultOptions).update($H(options));
+        }, options);
+        var $options = $H(options);
 
         var $select = $(select);
         new Ajax.Request($options.get('url'), {
