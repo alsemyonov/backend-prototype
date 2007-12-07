@@ -8,7 +8,7 @@
  * Victor V. Sokolov, 2007 - some changes to locale logic.
  */
 
-//TODO: IS LEAP YEAR, SETFULLEAR WITH THIS CHECK
+//TODO: IS LEAP YEAR, SETFULLEAR WITH THIS CHECK, COMPLETELY REFACTOR THIS
 
 Object.extend(Date, {
     locales: {
