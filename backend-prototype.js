@@ -139,14 +139,38 @@ Backend.Prototype.Table = {
 };
 
 Backend.Prototype.Select = {
+    formatOptions: function(items, options)
+    {
+        options = Object.extend({
+            valueField: 'id', 
+            labelField: 'title',
+            before: '',
+            after: ''
+        }, options);
+        var $options = $H(options);
+
+        var newOptions = $options.get('before');
+        if (items && items.length > 0) {
+            items.each(function(option) {
+                option = $H(option);
+                newOptions += '<option value="' + option.get($options.get('valueField')) + '">' + option.get($options.get('labelField'))+ '</option>';
+            });
+        }
+        newOptions += $options.get('after');
+        return newOptions;
+    },
+
+    setOptions: function(select, items, options)
+    {
+        newOptions = Backend.Prototype.Select.formatOptions(items, options);
+        $select = $(select);
+        $select.update(newOptions);
+    },
+
     loadOptions: function(select, options)
     {
         options = Object.extend({
             itemsProperty: 'items', 
-            valueField: 'id', 
-            labelField: 'title',
-            before: '',
-            after: '',
             onSuccess: Prototype.emptyFunction
         }, options);
         var $options = $H(options);
@@ -154,25 +178,13 @@ Backend.Prototype.Select = {
         var $select = $(select);
         new Ajax.Request($options.get('url'), {
             method: 'get',
-            onComplete: function(transport, json) {
-                json = json || transport.responseText.evalJSON();
-                if (!json) {
-                    return;
-                }
+            onComplete: function(t, json) {
+                json = json || t.responseJS || t.responseText.evalJSON();
 
-                json = $H(json);
-                values = json.get($options.get('itemsProperty'));
+                if ($options.get('itemsProperty')!='')
+                    values = json[$options.get('itemsProperty')];
 
-                var newOptions = $options.get('before');
-                if (values && values.length > 0) {
-                    values.each(function(option) {
-                        option = $H(option);
-                        newOptions += '<option value="' + option.get($options.get('valueField')) + '">' + option.get($options.get('labelField'))+ '</option>';
-                    });
-                }
-                newOptions += $options.get('after');
-                $select.update(newOptions);
-                $options.get('onSuccess')();
+                $select.setOptions(values, options);
             }
         });
     }
@@ -202,5 +214,6 @@ Element.addMethods("TFOOT", {
 });
 
 Element.addMethods("SELECT", {
+    setOptions: Backend.Prototype.Select.setOptions,
     loadOptions: Backend.Prototype.Select.loadOptions
 });
