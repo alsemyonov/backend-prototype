@@ -1,0 +1,217 @@
+if (!window.Backend) var Backend = {};
+
+Backend.Ajax = {
+    iframeRequests: {},
+    reqCount: 0,
+    getXmlHttpRequest: Ajax.getTransport,
+    getTransport: function(transport) {
+        transport = transport || 'xhr';
+        if ('xhr' == transport.toLowerCase()) {
+            return Backend.Ajax.getXmlHttpRequest();
+        } else if ('iframe' == transport.toLowerCase()) {
+            return new Backend.Ajax.IframeRequest();
+        }
+    },
+
+    createIframe: function(id) {
+        var self = this;
+        var divElm = document.createElement('DIV');
+        Object.extend(divElm.style, {
+            position: 'absolute', top: 0, marginLeft: '-10000px'
+        });
+        if (navigator.userAgent.indexOf('MSIE') > 0 && navigator.userAgent.indexOf('Opera') == -1) {// switch to the crappy solution for IE
+            divElm.innerHTML = '<iframe name=\"frame_' + id + '\" id=\"frame_' + id + '\" src=\"about:blank\" onload=\"setTimeout(function(){Backend.Ajax.iframeRequests[' + id + ']._onload()},20);"></iframe>';
+        } else {
+            var frame = document.createElement("iframe");
+            frame.setAttribute('name', 'frame_' + id);
+            frame.setAttribute('id', 'frame_' + id);
+            frame.addEventListener('load', function(){Backend.Ajax.iframeRequests[id ]._onload();}, false);
+            divElm.appendChild(frame);
+        }
+        document.getElementsByTagName("body").item(0).appendChild(divElm);
+
+        return $('frame_' + id);
+    }
+};
+
+Ajax.getTransport = Backend.Ajax.getTransport; // Replace Prototype's Ajax.getTransport()
+Backend.Ajax.IframeRequest = Class.create({
+    initialize: function() {
+        this.responseText = null;
+        this.responseXML = null;
+        this.status = null;
+        this.statusText = null;
+        this.readyState = 0;
+
+        Backend.Ajax.reqCount++;
+        this._method = null;
+        this._uri = null;
+        this._bodyData = null;
+        this._req_id = Backend.Ajax.reqCount;
+        this._requestHeaders = {};
+        Backend.Ajax.iframeRequests[this._req_id] = this;
+    },
+    
+    onreadystatechange: function() {},
+    
+    setState: function(state) {
+        this.readyState = state;
+        this.onreadystatechange();
+    },
+    /**
+     * Available methods: get, post, form
+     */
+    open: function(method, uri, async, userName, password) {
+        this._method = method.toUpperCase();
+        this._uri = uri;
+
+        this.setState(1);
+    },
+
+    setRequestHeader: function(/*String*/header, /*String*/value){
+        this._requestHeaders[header] = value;
+    },
+
+    send: function(content) {
+        this._bodyData = content;
+
+        this._frame = Backend.Ajax.createIframe(this._req_id);
+
+        if ('FORM' == this._method) {
+            return this._sendViaForm();
+        } else // GET, POST
+
+        if ('GET' == this._method) {
+            this._uri = this._uri + "&" + this._bodyData;
+        }
+
+        try {
+            this._frame.src = this._uri;   
+        } catch(e) {
+            return false;
+        }
+    },
+
+    _sendViaForm: function() {
+        form = $(this._bodyData);
+        form.target = 'frame_' + this._req_id;
+        form.setAttribute('target', 'frame_' + this._req_id); // in case the other one fails.
+        form.submit();
+    },
+
+    _onload: function() {
+        try {   var doc = this._frame.contentDocument.document.body.innerHTML; this._frame.contentDocument.document.close(); }	// For NS6
+        catch (e){ 
+            try{ var doc = this._frame.contentWindow.document.body.innerHTML; this._frame.contentWindow.document.close(); } // For IE5.5 and IE6
+             catch (e){
+                 try { var doc = this._frame.document.body.innerHTML; this._frame.document.body.close(); } // for IE5
+                    catch (e) {
+                        try	{ var doc = window.frames['frame_'+this.uniqueId].document.body.innerText; } // for really nasty browsers
+                        catch (e) { } // forget it.
+                 }
+            }
+        }
+        this.responseText = doc;
+
+        this.status = 200;
+        this.setState(4);
+    }
+});
+
+Backend.Ajax.Request = Class.create(Ajax.Request, {
+    initialize: function($super, url, options) {
+        this.options = {
+            method:       'post',
+            transport:       'xhr',
+            asynchronous: true,
+            contentType:  'application/x-www-form-urlencoded',
+            encoding:     'UTF-8',
+            parameters:   '',
+            evalJSON:     true,
+            evalJS:       true
+        };
+        Object.extend(this.options, options);
+
+        if (this.options.form) {
+            this.options.transport = 'iframe';
+            this.form = $(this.options.form);
+            this.options.method = 'form';
+            url = this.form.action;
+        }
+        this.transport = Backend.Ajax.getTransport(this.options.transport);
+
+        this.request(url);
+    },
+
+    request: function(url) {
+        this.url = url;
+        this.method = this.options.method;
+        var params = Object.clone(this.options.parameters);
+
+        if (!['get', 'post', 'form'].include(this.method)) {
+            // simulate other verbs over post
+            params['_method'] = this.method;
+            this.method = 'post';
+        }
+
+        this.parameters = params;
+
+        if (params = Object.toQueryString(params)) {
+            // when GET, append parameters to URL
+            if (this.method == 'get')
+                this.url += (this.url.include('?') ? '&' : '?') + params;
+            else if (/Konqueror|Safari|KHTML/.test(navigator.userAgent))
+                params += '&_=';
+        }
+
+        try {
+            var response = new Ajax.Response(this);
+            if (this.options.onCreate) this.options.onCreate(response);
+            Ajax.Responders.dispatch('onCreate', this, response);
+
+            this.transport.open(this.method.toUpperCase(), this.url,
+                this.options.asynchronous);
+
+            if (this.options.asynchronous) this.respondToReadyState.bind(this).defer(1);
+
+            this.transport.onreadystatechange = this.onStateChange.bind(this);
+            this.setRequestHeaders();
+
+            if (this.method == 'form') {
+                this.body = this.form;
+            } else if (this.method == 'post') {
+                this.body = this.options.postBody || params;
+            } else {
+                this.body = null;
+            }
+            this.transport.send(this.body);
+
+            /* Force Firefox to handle ready state 4 for synchronous requests */
+            if (!this.options.asynchronous && this.transport.overrideMimeType)
+                this.onStateChange();
+
+        }
+        catch (e) {
+            this.dispatchException(e);
+        }
+    },
+
+});
+
+Backend.Ajax.PrototypeRequest = Ajax.Request;
+Ajax.Request.prototype = Backend.Ajax.Request.prototype;
+
+Backend.Prototype = Backend.Prototype || {};
+Backend.Prototype.Form = Backend.Prototype.Form || {}
+Backend.Prototype.Form.submitThroughIframe = function($form, options) {
+    defaultOptions = {
+        form: $form
+    };
+    Object.extend(defaultOptions, options);
+    return new Ajax.Request(null, defaultOptions);
+}
+
+Element.addMethods("FORM", {
+    submitThroughIframe: Backend.Prototype.Form.submitThroughIframe
+});
+
