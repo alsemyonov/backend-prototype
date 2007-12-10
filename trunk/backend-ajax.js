@@ -96,7 +96,7 @@ Backend.Ajax.IframeRequest = Class.create({
     /**
      * Available methods: get, post, form
      */
-    open: function(method, uri, async, userName, password) {
+    open: function(/*String*/method, /*String*/uri, async, userName, password) {
         this._method = method.toUpperCase();
         this._uri = uri;
 
