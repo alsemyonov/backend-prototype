@@ -1,9 +1,35 @@
-if (!window.Backend) var Backend = {};
+/*  Backend Prototype JavaScript enchanser, version 0.0.1
+ *  (c) 2007 roTuKa
+ *--------------------------------------------------------------------------*/
 
+/*--------------------------------------------------------------------------*
+
+    // Send parameters x-domain
+    new Ajax.Request('http://example.com/', {
+        parameters: {some: 1, another: 2}
+    });
+    
+    // Send form #SomeForm x-domain
+    new Ajax.Request('http://example.com/', {
+        form: $('SomeForm')
+    });
+    
+    // Send form #SomeForm with IframeRequest
+    new Ajax.Request(null, {
+        form: $('SomeForm')
+    });
+    
+
+*---------------------------------------------------------------------------*/
+
+if (!window.Backend) var Backend = {};
 Backend.Ajax = {
     iframeRequests: {},
     reqCount: 0,
     getXmlHttpRequest: Ajax.getTransport,
+    /**
+     * Returns XmlHttpRequest or IframeRequest
+     */
     getTransport: function(transport) {
         transport = transport || 'xhr';
         if ('xhr' == transport.toLowerCase()) {
@@ -13,6 +39,9 @@ Backend.Ajax = {
         }
     },
 
+    /**
+     * Creates iframe for IframeRequest
+     */
     createIframe: function(id) {
         var self = this;
         var divElm = document.createElement('DIV');
@@ -136,7 +165,9 @@ Backend.Ajax.Request = Class.create(Ajax.Request, {
             this.options.transport = 'iframe';
             this.form = $(this.options.form);
             this.options.method = 'form';
-            url = this.form.action;
+            if (null == url) {
+                url = this.form.action;
+            }
         }
         this.transport = Backend.Ajax.getTransport(this.options.transport);
 
