@@ -19,6 +19,10 @@
         form: $('SomeForm')
     });
     
+    // another way
+    
+    $('SomeForm').submitThroughIframe();
+    
 
 *---------------------------------------------------------------------------*/
 
@@ -59,7 +63,9 @@ Backend.Ajax = {
         }
         document.getElementsByTagName("body").item(0).appendChild(divElm);
 
-        return $('frame_' + id);
+        var frame = $('frame_' + id);
+        frame.observe('load', function(){Backend.Ajax.iframeRequests[id ]._onload();});
+        return frame;
     }
 };
 
@@ -129,15 +135,18 @@ Backend.Ajax.IframeRequest = Class.create({
     },
 
     _onload: function() {
-        try {   var doc = this._frame.contentDocument.document.body.innerHTML; this._frame.contentDocument.document.close(); }	// For NS6
+        try {   var doc = this._frame.contentDocument.body.innerHTML; this._frame.contentDocument.close(); }  // 
         catch (e){ 
-            try{ var doc = this._frame.contentWindow.document.body.innerHTML; this._frame.contentWindow.document.close(); } // For IE5.5 and IE6
-             catch (e){
-                 try { var doc = this._frame.document.body.innerHTML; this._frame.document.body.close(); } // for IE5
-                    catch (e) {
-                        try	{ var doc = window.frames['frame_'+this.uniqueId].document.body.innerText; } // for really nasty browsers
-                        catch (e) { } // forget it.
-                 }
+            try {   var doc = this._frame.contentDocument.document.body.innerHTML; this._frame.contentDocument.document.close(); }  // For NS6
+            catch (e){ 
+                try{ var doc = this._frame.contentWindow.document.body.innerHTML; this._frame.contentWindow.document.close(); } // For IE5.5 and IE6
+                 catch (e){
+                     try { var doc = this._frame.document.body.innerHTML; this._frame.document.body.close(); } // for IE5
+                        catch (e) {
+                            try { var doc = window.frames['frame_'+this.uniqueId].document.body.innerText; } // for really nasty browsers
+                            catch (e) { } // forget it.
+                     }
+                }
             }
         }
         this.responseText = doc;
@@ -159,7 +168,11 @@ Backend.Ajax.Request = Class.create(Ajax.Request, {
             evalJSON:     true,
             evalJS:       true
         };
-        Object.extend(this.options, options);
+        Object.extend(this.options, options || {});
+
+        this.options.method = this.options.method.toLowerCase();
+        if (Object.isString(this.options.parameters))
+          this.options.parameters = this.options.parameters.toQueryParams();
 
         if (this.options.form) {
             this.options.transport = 'iframe';
@@ -168,6 +181,10 @@ Backend.Ajax.Request = Class.create(Ajax.Request, {
             if (null == url) {
                 url = this.form.action;
             }
+        }
+        
+        if (/^http/.test(url)) {
+            this.options.transport = 'iframe';
         }
         this.transport = Backend.Ajax.getTransport(this.options.transport);
 
@@ -229,8 +246,9 @@ Backend.Ajax.Request = Class.create(Ajax.Request, {
 
 });
 
-Backend.Ajax.PrototypeRequest = Ajax.Request;
-Ajax.Request.prototype = Backend.Ajax.Request.prototype;
+Backend.Ajax._Request = Ajax.Request.prototype;
+Ajax.Request.prototype.initialize = Backend.Ajax.Request.prototype.initialize;
+Ajax.Request.prototype.request = Backend.Ajax.Request.prototype.request;
 
 Backend.Prototype = Backend.Prototype || {};
 Backend.Prototype.Form = Backend.Prototype.Form || {}
@@ -246,3 +264,16 @@ Element.addMethods("FORM", {
     submitThroughIframe: Backend.Prototype.Form.submitThroughIframe
 });
 
+Element.addMethods({
+    load: function(element, url, options) {
+        element = $(element);
+        options = options || {};
+        options._onComplete = options.onComplete || Prototype.emptyFunction;
+        options.onSuccess = function(transport, json) {
+            element.update(transport.responseText);
+            options._onComplete(transport, json);
+        }
+        new Ajax.Request(url, options);
+        return element;
+    }
+});
