@@ -60,10 +60,18 @@ Backend.Prototype.Form = {
 
                 if ((e.tagName == 'SELECT') && (e.multiple == true)) {
                     //TODO.
+                } else if ((e.tagName == 'INPUT') && (e.type == 'checkbox' )) {
+                    if (e.value == value) {
+                        e.checked = true;
+                    } else {
+                        e.checked = false;
+                    }
                 } else {
                     if (value != undefined)
                         e.value = value;
                 }
+
+                e.fire('onChange');
             }
         );
     },
@@ -85,7 +93,7 @@ Backend.Prototype.Table = {
     },
 
     containers: {
-        email: function (v, row) { return '<a href="mailto: '+v+'">'+v+'</a>'; }
+        email: function (v, row) { if (v) return '<a href="mailto: '+v+'">'+v+'</a>';}
     },
 
     load: function(container, rows, columns, rowCallback)
@@ -97,7 +105,7 @@ Backend.Prototype.Table = {
         };
 
         var defaultCellCallback = function(c, row) {
-            return '<td>' + c + '</td>';
+            return '<td>' + (c? c: '&nbsp;') + '</td>';
         };
 
         var defaultFormatter = function(value, id, row) {
@@ -167,24 +175,28 @@ Backend.Prototype.Select = {
         $select.update(newOptions);
     },
 
-    loadOptions: function(select, options)
+    loadOptions: function(select, url, options)
     {
+        options = options || {};
+        Object.extend(options, typeof url == 'string' ? {'url': url} : url);
+
         options = Object.extend({
             itemsProperty: 'items', 
-            onSuccess: Prototype.emptyFunction
+            onComplete: Prototype.emptyFunction
         }, options);
-        var $options = $H(options);
+        var $options = options;
 
         var $select = $(select);
-        new Ajax.Request($options.get('url'), {
+        new Ajax.Request($options.url, {
             method: 'get',
             onComplete: function(t, json) {
                 json = json || t.responseJS || t.responseText.evalJSON();
 
-                if ($options.get('itemsProperty')!='')
-                    values = json[$options.get('itemsProperty')];
+                if (options.itemsProperty!='')
+                    values = json[$options.itemsProperty];
 
-                $select.setOptions(values, options);
+                $select.setOptions(values, $options);
+                $options.onComplete();
             }
         });
     }
