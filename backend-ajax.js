@@ -150,6 +150,7 @@ Backend.Ajax.IframeRequest = Class.create({
             }
         }
         this.responseText = doc;
+        if (console) console.debug(doc);
 
         this.status = 200;
         this.setState(4);
@@ -160,7 +161,7 @@ Backend.Ajax.Request = Class.create(Ajax.Request, {
     initialize: function($super, url, options) {
         this.options = {
             method:       'post',
-            transport:       'xhr',
+            transport:    'xhr',
             asynchronous: true,
             contentType:  'application/x-www-form-urlencoded',
             encoding:     'UTF-8',

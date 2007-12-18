@@ -58,13 +58,23 @@ Backend.Prototype.Form = {
                 value = r[0];
                 values = r[1];
 
+                function setCheckbox(e, value) {
+                    
+                }
+
                 if ((e.tagName == 'SELECT') && (e.multiple == true)) {
-                    //TODO.
-                } else if ((e.tagName == 'INPUT') && (e.type == 'checkbox' )) {
-                    if (e.value == value) {
-                        e.checked = true;
+                    //TODO !!!!!!! REWRITE.
+                } else if ((e.tagName == 'INPUT') && (e.className.indexOf('checkbox') != -1)) {
+                    if (e.type == 'checkbox') {
+                        e.value = 1;
                     } else {
-                        e.checked = false;
+                        $id = e.className.split(' ')[1];
+                        e.value = 0;
+                        ch = $($id);
+                        if (ch != undefined) {
+                            ch.checked = value == 1;
+                            ch.value = 1;
+                        }
                     }
                 } else {
                     if (value != undefined)
@@ -146,12 +156,28 @@ Backend.Prototype.Table = {
     }
 };
 
+Backend.Prototype.Element = {
+    moveDown: function (el) {
+        row = $(el);
+        nextRow = row.next();
+        row.parentNode.insertBefore(nextRow.cloneNode(true), row);
+        nextRow.remove();
+    },
+
+    moveUp: function (el) {
+        row = $(el);
+        prevRow = row.previous();
+        prevRow.parentNode.insertBefore(row.cloneNode(true), prevRow);
+        row.remove();
+    }
+};
+
 Backend.Prototype.Select = {
     formatOptions: function(items, options)
     {
         options = Object.extend({
             valueField: 'id', 
-            labelField: 'title',
+            labelField: 'name',
             before: '',
             after: ''
         }, options);
@@ -189,6 +215,7 @@ Backend.Prototype.Select = {
         var $select = $(select);
         new Ajax.Request($options.url, {
             method: 'get',
+            transport: 'xhr',
             onComplete: function(t, json) {
                 json = json || t.responseJS || t.responseText.evalJSON();
 
@@ -199,6 +226,7 @@ Backend.Prototype.Select = {
                 $options.onComplete();
             }
         });
+        return select;
     }
 };
 
@@ -228,4 +256,9 @@ Element.addMethods("TFOOT", {
 Element.addMethods("SELECT", {
     setOptions: Backend.Prototype.Select.setOptions,
     loadOptions: Backend.Prototype.Select.loadOptions
+});
+
+Element.addMethods({
+    moveUp: Backend.Prototype.Element.moveUp,
+    moveDown: Backend.Prototype.Element.moveDown
 });
