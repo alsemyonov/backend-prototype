@@ -150,7 +150,6 @@ Backend.Ajax.IframeRequest = Class.create({
             }
         }
         this.responseText = doc;
-        if (console) console.debug(doc);
 
         this.status = 200;
         this.setState(4);
