@@ -213,7 +213,7 @@ Backend.Prototype.Select = {
         var $options = options;
 
         var $select = $(select);
-        $select.enabled = false;
+        $select.disabled = true;
         new Ajax.Request($options.url, {
             method: 'get',
             transport: 'xhr',
@@ -224,7 +224,7 @@ Backend.Prototype.Select = {
                     values = json[$options.itemsProperty];
 
                 $select.setOptions(values, $options);
-                $select.enabled = true;
+                $select.disabled = false;
                 $options.onComplete();
             }
         });
