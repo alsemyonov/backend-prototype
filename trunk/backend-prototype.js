@@ -49,14 +49,11 @@ Backend.Prototype.Form = {
         };
 
         values = $H(values);
+        radiosCache = $H();
 
         elements.each(
             function(e) {
                 var nameParts = parseName(e.name);
-
-                r = getValue(values, nameParts);
-                value = r[0];
-                values = r[1];
 
                 function setCheckbox(e, value) {
                     
@@ -65,6 +62,10 @@ Backend.Prototype.Form = {
                 if ((e.tagName == 'SELECT') && (e.multiple == true)) {
                     //TODO !!!!!!! REWRITE.
                 } else if ((e.tagName == 'INPUT') && (e.className.indexOf('checkbox') != -1)) {
+                    r = getValue(values, nameParts);
+                    value = r[0];
+                    values = r[1];                    
+                    
                     if (e.type == 'checkbox') {
                         e.value = 1;
                     } else {
@@ -76,7 +77,21 @@ Backend.Prototype.Form = {
                             ch.value = 1;
                         }
                     }
+                } if (e.type == 'radio') {
+                    if (radiosCache.get(e.name) == undefined) {
+                        r = getValue(values, nameParts);
+                        value = r[0];
+                        values = r[1];
+                        radiosCache.set(e.name, value);
+                    } else {
+                        value = radiosCache.get(e.name);                        
+                    }
+                    if (e.value == value) e.checked = true;
                 } else {
+                    r = getValue(values, nameParts);
+                    value = r[0];
+                    values = r[1];
+                    
                     if (value != undefined)
                         e.value = value;
                 }
