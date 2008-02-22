@@ -36,17 +36,17 @@ Backend.Interface.Control = Class.create({
 
     render: function(to) {
         $(to).update(this.getHtml());
-        this.onAfterRender();
+        this.afterRender();
     },
 
     refresh: function() {
         if (this.elm == null) return;
         this.elm.replace(this.getHtml());
-        this.onAfterRender();
+        this.afterRender();
     },
 
-    onAfterRender: function() {
-        this.controls.each(function(c) { c.onAfterRender(); });
+    afterRender: function() {
+        this.controls.each(function(c) { c.afterRender(); });
         if (this.id) this.elm = $(this.id);
     },
 
@@ -106,7 +106,7 @@ Backend.Interface.Control.Button = Class.create(Backend.Interface.Control, {
         return '<input type="button" id="'+this.id+'" value="'+this.cfg.label+'"/>';
     },
 
-    onAfterRender: function($super) {
+    afterRender: function($super) {
         $super();
         this.elm.observe('click', function() { this.fire('click', this); return false; }.bind(this));
     }
@@ -146,7 +146,7 @@ Backend.Interface.Control.PageNav = Class.create(Backend.Interface.Control, {
         return html;
     },
 
-    onAfterRender: function($super) {
+    afterRender: function($super) {
         $super();
         this.slice.each(function(no) {
             if (no != this.chosenPage) {
@@ -307,3 +307,4 @@ Backend.Interface.Control.FieldSet.Row = Class.create(Backend.Interface.Control,
         return s;
     }
 });
+
