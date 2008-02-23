@@ -12,13 +12,15 @@ Backend.Interface.Control = Class.create({
 
     initialize: function(id, cfg) {
         this.controls = [];
+
+        cfg = cfg || {};
+        this.cfg = Object.extend(Object.clone(this.defaults), cfg);
+
         if ((id == null) || (id == undefined)) {
             id = 'c'+Math.random();
         }
 
         this.id = id;
-        cfg = cfg || {};
-        this.cfg = Object.extend(Object.clone(this.defaults), cfg);
         this.elm = null;
     },
 
@@ -40,7 +42,7 @@ Backend.Interface.Control = Class.create({
     },
 
     refresh: function() {
-        if (this.elm == null) return;
+        if (!Object.isElement(this.elm)) return;
         this.elm.replace(this.getHtml());
         this.afterRender();
     },
@@ -56,6 +58,15 @@ Backend.Interface.Control = Class.create({
 
     remove: function(c) {
         this.controls = this.controls.without(c);
+    }
+});
+
+/*
+ * Panel (empty div) class.
+ *--------------------------------------------------------------------------*/ 
+Backend.Interface.Control.Panel = Class.create(Backend.Interface.Control, {
+    getHtml: function() {
+        return '<div>'+this.getChildrenHtml()+'</div>';
     }
 });
 
@@ -95,10 +106,11 @@ Backend.Interface.Control.Button = Class.create(Backend.Interface.Control, {
     },
 
     initialize: function($super, id, cfg) {
-        $super(id);
+        $super(id, cfg);
         this.addEvents(['click']);
-        if (this.cfg.handler != undefined) {
-            this.on('click', this.cfg.handler());
+
+        if (Object.isFunction(this.cfg.handler)) {
+            this.on('click', this.cfg.handler);
         }
     },
 
@@ -166,11 +178,11 @@ Backend.Interface.Control.InputControl = Class.create(Backend.Interface.Control,
     defaults: {},
 
     getValue: function() {
-        return $(this.id).value;
+        return this.elm.value;
     },
 
     setValue: function(value) {
-        $(this.id).value = value;
+        this.elm.value = value;
     }
 });
 
@@ -218,9 +230,15 @@ Backend.Interface.Control.Form = Class.create(Backend.Interface.Control, {
         enctype: 'multipart/form-data'
     },
 
+    controlClasses: {
+        'Input': Backend.Interface.Control.InputControl.Input,
+        'Textarea': Backend.Interface.Control.InputControl.TextArea
+    },
+
     initialize: function($super, id, cfg) {
         $super(id, cfg);
-        this.valueControls = [];
+        this.valueControls = $H();
+        this.currentSet = null;
     },
 
     getHtml: function() {
@@ -233,21 +251,48 @@ Backend.Interface.Control.Form = Class.create(Backend.Interface.Control, {
     addSet: function(legend) {
         s = new Backend.Interface.Control.FieldSet(null, legend, this);
         this.add(s);
+        this.currentSet = s;
         return s;
     },
 
+    addField: function(label, c, cfg) {
+        row = new Backend.Interface.Control.FieldSet.Row(null, label);
+
+        p = new Backend.Interface.Control.Panel();
+        p.add(row);
+
+        if (Object.isString(c)) {
+            cName = c.capitalize();
+            c = new this.controlClasses[cName](cfg.id, cfg);
+        }
+
+        row.add(c);
+        this.currentSet.add(p);
+        if (c.getValue != undefined)
+            this.valueControls.set(cfg.id, c);
+        return row;
+    },
+
+    addFields: function() {
+        fields = $A(arguments);
+
+        fields.each(function(a) {
+            this.addField(a[0], a[1], a[2]);
+        }.bind(this));
+    },
+
     setValues: function(values) {
+        $H(values).each(function(pair) {
+            c = this.valueControls.get(pair.key);
+            if (c != undefined) c.setValue(pair.value);
+        }.bind(this));
     },
 
     getValues: function(values) {
         values = {};
-        this.valueControls.each(function(c) {
-            v = c.getValue();
-            if (Object.isObject(v)) {
-                Object.extend(values, v);
-            } else {
-                values[c.id] = v;
-            }
+        this.valueControls.each(function(pair) {
+            v = pair.value.getValue();
+            values[pair.key] = v;
         });
 
         return values;
@@ -258,11 +303,6 @@ Backend.Interface.Control.Form = Class.create(Backend.Interface.Control, {
  * Field set class.
  *--------------------------------------------------------------------------*/ 
 Backend.Interface.Control.FieldSet = Class.create(Backend.Interface.Control, {
-    controlClasses: {
-        'Input': Backend.Interface.Control.InputControl.Input,
-        'Textarea': Backend.Interface.Control.InputControl.TextArea
-    },
-
     initialize: function($super, id, legend) {
         $super(id);
         this.legend = legend;
@@ -271,25 +311,6 @@ Backend.Interface.Control.FieldSet = Class.create(Backend.Interface.Control, {
     getHtml: function() {
         s = '<fieldset><legend>'+this.legend+'</legend>'+this.getChildrenHtml()+'</fieldSet>';
         return s;
-    },
-
-    addRow: function(label, c, cfg) {
-        row = new Backend.Interface.Control.FieldSet.Row(null, label);
-
-        if (Object.isString(c)) {
-            cName = c.capitalize();
-            c = new this.controlClasses[cName](cfg.id, cfg);
-        }
-
-        row.add(c);
-        this.add(row);
-        return row;
-    },
-
-    addRows: function(rows) {
-        rows.each(function(r) {
-            this.addRow(r[0], r[1], r[2]);
-        });
     }
 });
 
@@ -303,7 +324,7 @@ Backend.Interface.Control.FieldSet.Row = Class.create(Backend.Interface.Control,
     },
 
     getHtml: function() {
-        s = '<div><label>'+this.label+'</label>'+this.getChildrenHtml()+'</div>';
+        s = '<label>'+this.label+'</label>'+this.getChildrenHtml();
         return s;
     }
 });
