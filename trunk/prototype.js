@@ -121,7 +121,7 @@ Backend.Prototype.Table = {
         email: function (v, row) { if (v) return '<a href="mailto: '+v+'">'+v+'</a>';}
     },
 
-    load: function(container, rows, columns, rowCallback)
+    fill: function(container, rows, columns, rowCallback)
     {
         var info = [];
 
@@ -253,12 +253,10 @@ Element.addMethods("FORM", {
 });
 
 Element.addMethods("TABLE", {
-    load: Backend.Prototype.Table.load,
-    fill: Backend.Prototype.Table.fill
+    fill: Backend.Prototype.Table.load
 });
 
 Element.addMethods("TBODY", {
-    load: Backend.Prototype.Table.load,
     fill: Backend.Prototype.Table.fill
 });
 
