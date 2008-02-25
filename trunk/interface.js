@@ -2,7 +2,12 @@
  *  (c) 2007 gzigzigzi
  *--------------------------------------------------------------------------*/
 
-Backend.Interface = {};
+if(typeof Backend.Observable == 'undefined')
+  throw("backend-interface.js requires including backend's observable.js library");
+
+Backend.Interface = {
+    idCounter: 1
+};
 
 /*
  * Base control class.
@@ -11,17 +16,16 @@ Backend.Interface.Control = Class.create({
     defaults: {},
 
     initialize: function(id, cfg) {
-        this.controls = [];
-
         cfg = cfg || {};
         this.cfg = Object.extend(Object.clone(this.defaults), cfg);
 
-        if ((id == null) || (id == undefined)) {
-            id = 'c'+Math.random();
+        if (!Object.isString(id)) {
+            id = 'element_'+Backend.Interface.idCounter++;
         }
 
         this.id = id;
         this.elm = null;
+        this.controls = [];
     },
 
     getHtml: function() {
@@ -41,15 +45,20 @@ Backend.Interface.Control = Class.create({
         this.afterRender();
     },
 
-    refresh: function() {
-        if (!Object.isElement(this.elm)) return;
-        this.elm.replace(this.getHtml());
-        this.afterRender();
-    },
-
     afterRender: function() {
         this.controls.each(function(c) { c.afterRender(); });
         if (this.id) this.elm = $(this.id);
+
+        if (!Object.isElement(this.elm)) { 
+            throw('Rendering failed for: '+this.id);
+        }
+    },
+
+    refresh: function() {
+        if (Object.isElement(this.elm)) {
+            this.elm.replace(this.getHtml());
+            this.afterRender();
+        }
     },
 
     add: function(c) {
@@ -65,8 +74,11 @@ Backend.Interface.Control = Class.create({
  * Panel (empty div) class.
  *--------------------------------------------------------------------------*/ 
 Backend.Interface.Control.Panel = Class.create(Backend.Interface.Control, {
+    defaults: {
+        cls: '',
+    },
     getHtml: function() {
-        return '<div>'+this.getChildrenHtml()+'</div>';
+        return '<div class="'+this.cfg.cls+'" id="'+this.id+'">'+this.getChildrenHtml()+'</div>';
     }
 });
 
@@ -74,8 +86,12 @@ Backend.Interface.Control.Panel = Class.create(Backend.Interface.Control, {
  * Grid (table) class.
  *--------------------------------------------------------------------------*/ 
 Backend.Interface.Control.Grid = Class.create(Backend.Interface.Control, {
+    defaults: {
+        cls: 'listTb'
+    },
+
     getHtml: function() {
-        s =  '<table id="'+this.id+'" class="listTb">';
+        s =  '<table id="'+this.id+'" class="'+this.cfg.cls+'">';
         s += '<thead>';
 
         $H(this.cfg.columns).each(function(pair) { 
@@ -115,7 +131,7 @@ Backend.Interface.Control.Button = Class.create(Backend.Interface.Control, {
     },
 
     getHtml: function() {
-        return '<input type="button" id="'+this.id+'" value="'+this.cfg.label+'"/>';
+        return '<input type="button" name="'+this.id+'" id="'+this.id+'" value="'+this.cfg.label+'"/>';
     },
 
     afterRender: function($super) {
@@ -177,6 +193,16 @@ Backend.Interface.Control.PageNav.addMethods(Backend.Observable);
 Backend.Interface.Control.InputControl = Class.create(Backend.Interface.Control, {
     defaults: {},
 
+    initialize: function($super, id, cfg) {
+        if (!Object.isString(cfg.name)) { 
+            cfg.name = id;
+        } else if (cfg.name == '') {
+            cfg.name = id;
+        }
+
+        $super(id, cfg);
+    },
+
     getValue: function() {
         return this.elm.value;
     },
@@ -199,6 +225,45 @@ Backend.Interface.Control.InputControl.Input = Class.create(Backend.Interface.Co
 
     getHtml: function() {
         return '<input type="text" name="'+this.cfg.name+'" id="'+this.id+'" maxLength="'+this.cfg.maxLength+'"></input>';
+    }
+});
+
+/*
+ * File attachment input control.
+ */
+Backend.Interface.Control.FileUploader = Class.create(Backend.Interface.InputControl, {
+    defaults: {
+        id: '',
+        maxRows: '',
+        requestOptions: {
+            method: 'frame'
+        },
+        url: ''
+    },
+
+    initialize: function($super, id, cfg) {
+        $super(id, cfg);
+        this.rows = 0;
+    },
+
+    getHtml: function() {
+        s = '<div id="'+this.id+'">';
+
+        for(i = 0; i < rows; i++) {
+            s += '<input type="file" name="file'+i+'"/>';
+        }
+
+        s += '<span><a id="'+this.id+'-add-button">Добавить</a></span>';
+        s += '<span><a id="'+this.id+'-upload-button">Закачать</a></span>';
+        s += '</div>';
+    },
+
+    afterRender: function($super) {
+        $super();
+    },
+
+    upload: function(afterUpload) {
+
     }
 });
 
@@ -226,7 +291,7 @@ Backend.Interface.Control.InputControl.TextArea = Class.create(Backend.Interface
 Backend.Interface.Control.Form = Class.create(Backend.Interface.Control, {
     defaults: {
         method: 'get',
-        action: '',
+        action: '.',
         enctype: 'multipart/form-data'
     },
 
@@ -309,7 +374,7 @@ Backend.Interface.Control.FieldSet = Class.create(Backend.Interface.Control, {
     },
 
     getHtml: function() {
-        s = '<fieldset><legend>'+this.legend+'</legend>'+this.getChildrenHtml()+'</fieldSet>';
+        s = '<fieldset id="'+this.id+'"><legend>'+this.legend+'</legend>'+this.getChildrenHtml()+'</fieldSet>';
         return s;
     }
 });
@@ -324,8 +389,7 @@ Backend.Interface.Control.FieldSet.Row = Class.create(Backend.Interface.Control,
     },
 
     getHtml: function() {
-        s = '<label>'+this.label+'</label>'+this.getChildrenHtml();
+        s = '<label id="'+this.id+'">'+this.label+'</label>'+this.getChildrenHtml();
         return s;
     }
 });
-

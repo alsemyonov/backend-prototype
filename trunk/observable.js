@@ -2,24 +2,21 @@
  *  (c) 2007 gzigzigzi
  *--------------------------------------------------------------------------*/
 
-/*
- * Observable mixin.
- *
- *   C = Class.Create({
- *      initialize: function() {
- *          this.addEvents(['onSave', 'onEdit']);
- *      }
- *   });
- *   C.addMethods(Backend.Observable);
- *
- *   c.on('onSave', function(args) { } );
- *   c.fire('onSave', 1);
- *   c.purge();
- *
- *--------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------
+   Observable mixin.
+  
+   C = Class.Create({
+       initialize: function() {
+           // Define events
+           this.addEvents(['onSave', 'onEdit']);
+       }
+   });
+   C.addMethods(Backend.Observable);
 
-Backend = {};
-
+   c.on('onSave', function(args) { } );   // Add event handler.
+   c.fire('onSave', 1);                   // Fire event.
+   c.purge();                             // Remove all event handlers.
+ *---------------------------------------------------------------------------*/
 Backend.Observable = {
     addEvents: function(newListeners) {
         this.listeners = {} || this.listeners;
