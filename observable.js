@@ -19,7 +19,7 @@
  *---------------------------------------------------------------------------*/
 Backend.Observable = {
     addEvents: function(newListeners) {
-        this.listeners = {} || this.listeners;
+        this.listeners = this.listeners || {};
 
         newListeners.each(function(l) {
             if (this.listeners[l] == undefined) {
@@ -27,12 +27,18 @@ Backend.Observable = {
             }
         }.bind(this));
     },
-
     on: function(name, handler) {
-        if (!this.listeners[name] == undefined) return;
-        this.listeners[name].push(handler);
+        if (Object.isString(name)) {
+            if (this.listeners[name] == undefined) return;
+            this.listeners[name].push(handler);
+        } else {
+            $H(this.listeners).each(function(p) {
+                evtName = p.key;
+                if (!Object.isUndefined(name[evtName]))
+                    this.on(evtName, name[evtName]);
+            });
+        }
     },
-
     fire: function() {
         args = $A(arguments);
         name = args.shift();
@@ -43,20 +49,16 @@ Backend.Observable = {
             });
         }
     },
-
     purge: function() {
         this.listeners = {};
     },
-
     remove: function(name, handler) {
         if (this.listeners[name] == undefined) return;
         this.listeners[name] = this.listeners[name].without(handler);
     },
-
     suspend: function() {
         this.suspendEvents = true;
     },
-
     resume: function() {
         this.suspendEvents = false;
     }

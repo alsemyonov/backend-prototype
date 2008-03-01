@@ -21,7 +21,7 @@ var Backend = {
     }).each( function(s) {
       var path = s.src.replace(/backend\.js(\?.*)?$/,'');
       var includes = s.src.match(/\?.*load=([a-z,]*)/);
-      (includes ? includes[1] : 'date,prototype,ajax,observable,interface').split(',').each(
+      (includes ? includes[1] : 'prototype,ajax,observable,configurable,component,data,behaviour').split(',').each(
        function(include) { Backend.require(path+include+'.js') });
     });
   }
