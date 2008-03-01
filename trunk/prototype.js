@@ -126,7 +126,7 @@ Backend.Prototype.Table = {
         var info = [];
 
         var defaultRowCallback = function(r, row) {
-            return '<tr id="row'+row['id']+'">'+r+"</tr>";
+            return '<tr>'+r+"</tr>";
         };
 
         var defaultCellCallback = function(c, row) {
