@@ -28,16 +28,18 @@ Backend.Observable = {
         }.bind(this));
     },
     on: function(name, handler) {
-        if (Object.isString(name)) {
-            if (this.listeners[name] == undefined) return;
-            this.listeners[name].push(handler);
-        } else {
-            $H(this.listeners).each(function(p) {
-                evtName = p.key;
-                if (!Object.isUndefined(name[evtName]))
-                    this.on(evtName, name[evtName]);
-            });
-        }
+        this.listeners = this.listeners || {};
+
+        if (this.listeners[name] == undefined) return;
+        this.listeners[name].push(handler);
+
+    },
+    onAll: function(handlers) {
+        $H(this.listeners).each(function(p) {
+            evtName = p.key;
+            if (!Object.isUndefined(handlers[evtName]))
+                this.on(evtName, handlers[evtName]);
+        });    
     },
     fire: function() {
         args = $A(arguments);

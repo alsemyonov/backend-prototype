@@ -1,5 +1,37 @@
 /* 43343*/ 
 Backend.Prototype = {};
+
+
+/*
+ * Produces php-style query string.
+ *--------------------------------------------------------------------------*/ 
+/*Hash.addMethods({
+    'toQueryString': function() {
+        toQueryPair = function(key, value) {
+            if (Object.isUndefined(value)) return key;
+            return key + '=' + encodeURIComponent(String.interpret(value));
+        }
+
+        stub = function(o, prefix, suffix) {
+            return o.map(function(pair) {
+                var key = encodeURIComponent(pair.key), values = pair.value;
+
+                if (values && typeof values == 'object') {
+                    if (Object.isArray(values)) {
+                        return values.map(toQueryPair.curry(prefix+key+suffix+'[]')).join('&');
+                    } else {
+                        values = stub($H(values), prefix+'['+key, ']');
+                        return values;
+                    }
+                }
+                return toQueryPair(key, values);
+          }).join('&');
+      };
+
+      return stub(this, '', '');
+    }
+});*/
+
 Backend.Prototype.Form = {
     deserializeElements: function(form, elements, values) {
         parseName = function(name)

@@ -3,10 +3,8 @@ Backend.Behavior = Class.create({
         this.subs = subs;
         this.configure(config);
         $H(this.subs).each(function(pair) {
-            if (Object.isUndefined(pair.value)) {
-                throw "Behavior could not contain undefined components: "+pair.key;
-            }
-            this.attach(pair.key, pair.value);
+            if (pair.value)
+                this.attach(pair.key, pair.value);
         }.bind(this));
         this.on(config);
     },
@@ -40,7 +38,7 @@ Backend.Behavior.Editor = Class.create(Backend.Behavior, {
                 sub.on('click', this.saveClick.bind(this));
             break;
             case 'cancelButton':
-                sub.on('cancel', this.cancelClick.bind(this));
+                sub.on('click', this.cancelClick.bind(this));
             break;
         }
     },
@@ -56,29 +54,42 @@ Backend.Behavior.Editor = Class.create(Backend.Behavior, {
         }
     },
 
-    itemReceived: function(item) {
+    itemReceived: function(json) {
         if (this.config.closeOnSave) {
             this.subs.container.show();
         }
 
-        this.fire('edit', this, this.keyValue, item);
+        this.fire('edit', this, this.keyValue, json);
 
-        this.subs.form.setValues(item);
+        this.subs.form.setValues(json);
     },
 
     saveClick: function() {
-        values = this.subs.form.getValues();
+        var v = this.subs.form.getValues();
+        this.config.saveItem(this.keyValue, v, this.saveConfirmed.bind(this));
 
-        this.config.saveItem(this.keyValue, values, this.saveConfirmed.bind(this));
-
-        this.fire('save', this, this.keyValue, values);
+        this.fire('save', this, this.keyValue, v);
     },
 
-    saveConfirmed: function() {
-        if (this.config.closeOnSave) {
-            this.subs.container.hide();
+    saveConfirmed: function(json) {
+        if (json.result == false) {
+            this.subs.form.owned.invoke('hideValidator');
+            if (json.errors) {
+                $H(json.errors).each(function(pair) {
+                    var field = $C(pair.key);
+                    field.showError(pair.value);
+                });
+            }
+        } else {        
+            if (this.config.closeOnSave) {
+                this.subs.container.hide();
+            }
+            this.subs.form.resetValues();
         }
-        this.subs.form.resetValues();
+    },
+
+    cancel: function() {
+        this.cancelClick();
     },
 
     cancelClick: function() {
@@ -95,24 +106,24 @@ Backend.Behavior.List = Class.create(Backend.Behavior, {
     initialize: function($super, subs, config) {
         this.setDefaults({
             getList: Prototype.emptyFunction,
-            removeItem: Prototype.emptyFunction,
-            pageSize: 0,
-            sliceSize: 0
+            removeItem: Prototype.emptyFunction
         });
 
         this.addEvents(['load', 'action', 'pageChosen']);
 
         $super(subs, config);
-        this.page = 0;
+
         if (this.config.source) {
             this.config.getList = this.config.source.getList.bind(this.config.source);
             this.config.removeItem = this.config.source.removeItem.bind(this.config.source);
         }
+        
+        this.page = 1;
     },
 
     attach: function(type, sub) {
         switch(type) {
-            case 'grid':
+            case 'list':
                 sub.on('action', this.action.bind(this));
             break;
 
@@ -125,19 +136,21 @@ Backend.Behavior.List = Class.create(Backend.Behavior, {
     load: function() {
         this.config.getList({
             page: this.page, 
-            pageSize: this.config.pageSize, 
-            sliceSize: this.config.sliceSize
+            paginate: this.config.paginate
         }, this.setItems.bind(this));
     },
 
-    setItems: function(items) {
-        this.subs.grid.setItems(items.items);
+    setItems: function(json) {
+        this.subs.list.setItems(json.items);
         if (!Object.isUndefined(this.subs.total)) {
-            this.subs.total.update(items.total);
+            this.subs.total.update(json.total);
         }
 
-        if ((!Object.isUndefined(this.subs.navigator)) && (!Object.isUndefined(items.slice))) {
-            this.subs.navigator.setSlice(items.slice, this.page);
+        if ((!Object.isUndefined(this.subs.navigator)) && (!Object.isUndefined(json.slice))) {
+            this.subs.navigator.setSlice(json.slice, this.page);
+            if (!Object.isUndefined(this.subs.totalPages)) {
+                this.subs.totalPages.update(json.totalPages);
+            }
         }
     },
 

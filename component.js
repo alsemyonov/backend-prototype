@@ -1,65 +1,125 @@
 /*  Backend Prototype JavaScript enchanser, version 0.0.1
- *  (c) 2007 gzigzigzi
+ *  (c) 2007-2008 gzigzigzi, (c) 2007-2008 rotuka
  *--------------------------------------------------------------------------*/
+
+// @todo $B вместо return '<>'. 
 
 /*
  * Base component class.
+ *   Component is a 'view' part of standard MVC triad.
+ *   Each component has:
+ *      - Unique id.
+ *      - Unique type id (used in $B).
+ *      - Container DIV with same id as component.
+ *      - Configuration (may be pre set).
+ *      - Group(s) this component belongs to.
+ *
+ *   You coluld define component in such ways:
+ *   1) <div class="component" id="c1" onclick="['textfield', {multiline: false}]"/>
+ *   2) <div class="component" id="c1"/>
+ *      <script>Backend.Component.preConfigure('c1', 'textfield', {multiline: false})"/></script>
+ *
+ *   To render all components on page call Backend.Component.load();
+ *
+ *   After creation, components will be accessible through $C() function.
+ *   For example, $C('c1') returns component c1.
+ *
+ *   To add component to a group, define special 'groups' attribute. It
+ *   could be group id or of group ids to add component to. To access group,
+ *   call $G() function. It returns array of component objects in such group,
+ *   or undefined.
+ *
+ *   Configuration attributes:
+ *     - cls - Component container class.
  *--------------------------------------------------------------------------*/ 
 Backend.Component = Class.create({
+    // Constructor
     initialize: function(id, config) {
-        this.setDefaults({cls: ''});
-        this.configure(config);
         this.id = id;
-        this.on(config);
+        this.isRendered = false;        
+        this.setDefaults({
+            cls: ''
+        });
+        this.configure(config);        
+        this.onAll(config);
     },
-    html: function() {
-        return '<div id="'+this.id+'" class="'+this.config.cls+'"></div>';
+    // Returns component HTML.
+    toHTML: function() {
+        return $B('div', {id: this.id, class: this.config.cls});
     },
+    // Renders component.
     render: function() {
-        $(this.id).replace(this.html());
+        $(this.id).replace(this.toHTML());
     },
+    // Hides component.
     hide: function() {
-        $(this.id).hide();
+        if (this.isRendered()) {
+            $(this.id).hide();
+        }
     },
+    // Shows component.
     show: function() {
-        $(this.id).show();
+        if (this.isRendered()) {
+            $(this.id).show();
+        }
+    },
+    // Returns rendered status.
+    isRendered: function() {
+        return this.isRendered;
     }
 }, Backend.Observable, Backend.Configurable);
 
+/*
+ * Component instance methods.
+ *--------------------------------------------------------------------------*/ 
 Object.extend(Backend.Component, {
     types: $H(),
     created: $A(),
     groups: $H(),
-    idCounter: 1,
-
+    preConfig: $H(),
+        
+    // Registers component type string.
     registerType: function(klass) {
-        Backend.Component.types.set(klass.type, klass);
+        if (Backend.Component.types.keys().include(klass.type)) {
+            throw klass.type+" already registered";
+        }
+        Backend.Component.types.set(klass.type, klass);        
     },
-
-    getByType: function(type) {
+    
+    // Returns component class by type string.
+    getTypeClass: function(type) {
         return Backend.Component.types.get(type);
     },
-
+    // Presets component configuration.
+    preConfigure: function(id, type, config) {
+        this.preConfig.set(id, [type, config]);
+    },
+    // Adds component to a group.
     addToGroup: function(g, c) {
-        group = Backend.Component.groups.get(g);
+        var group = Backend.Component.groups.get(g);
         group = group || $A();
         group.push(c);
         Backend.Component.groups.set(g, group);
     },
-
+    // Loads components
     load: function() {
-        c = $$('.component');
+        var c = $$('.component');
 
         c.each(function(c) {
-            p = c.onclick();
+            var p = {};
+            if (Object.isFunction(c.onclick)) {
+                p = c.onclick();
+            } else {
+                p = Object.extend(Backend.Component.preConfig.get(c.id), p);
+            }
+            
+            var id = c.id;
+            var type = p[0];
+            var config = p[1] || {};
 
-            id = c.id;
-            type = p[0];
-            config = p[1] || {};
-
-            cls = Backend.Component.getByType(type);
+            var cls = Backend.Component.getTypeClass(type);
             if (!Object.isUndefined(cls)) {
-                obj = new cls(id, config);
+                var obj = new cls(id, config);
                 Backend.Component.add(obj);
 
                 if (config.groups) {
@@ -77,41 +137,51 @@ Object.extend(Backend.Component, {
         this.created.invoke('render');
     },
 
+    // Adds component to global dictionary.
     add: function(c) {
         this.created.push(c);
     },
 
-    $: function(id) {
+    // Global method to get component by id.
+    $C: function(id) {
         if (!Object.isString(id)) return id;
         return Backend.Component.created.find(function(c) { return c.id == id; });
     },
 
+    // Global method to get component groups by id.
     $G: function(id) {
         return Backend.Component.groups.get(id);
     },
 
+    // Method to build html as Script.Aculo.Us Builder, but more quickly
+    // (generation is text-based, not DOM-based as in Builder).
+    //
+    // Div with inner textfield component:
+    //   html = $B('div', {}, [
+    //      $B('#textfield', {id: 'name'})
+    //   ])
     $B: function(name, attrs, children) {
         if (Object.isArray(attrs)) {
             children = attrs;
             attrs = {};
         }
-
+        
         if (name[0] == '#') {
-            comp = name.substring(1);
+            var comp = name.substring(1);
             name = 'div';
-            id = attrs.id;
+            var id = attrs.id;
 
             attrs = $H(attrs);
             attrs.unset('id')
-            attrs = attrs.toJSON().gsub('"', '&quot;');
-            attrs = "return ['"+comp+"', "+attrs+"];";
 
-            attrs = { class: 'component', id: id, onclick: attrs };
+            Backend.Component.preConfigure(id, comp, attrs.toObject());
+
+            attrs = { class: 'component', id: id};
         }
 
-        a = $H(attrs).collect(function(pair) { return pair.key+'="'+pair.value+'"'; }).join(' ');
+        var a = $H(attrs).collect(function(pair) { return pair.key+'="'+pair.value+'"'; }).join(' ');
 
-        ch = '';
+        var ch = '';
         if (Object.isString(children)) {
             ch = children;
         } else if (Object.isArray(children)) {
@@ -122,12 +192,48 @@ Object.extend(Backend.Component, {
     }
 });
 
-$C = Backend.Component.$;
-$CG = Backend.Component.$G;
+$C = Backend.Component.$C;
+$G = Backend.Component.$G;
 $B = Backend.Component.$B;
 
 /*
+ * Button class
+ *
+ * Configuration attributes:
+ *   label - button label.
+ *   click - click event handler.
+ *--------------------------------------------------------------------------*/ 
+Backend.Component.Button = Class.create(Backend.Component, {
+    initialize: function($super, id, config) {
+        this.setDefaults({
+            label: ''
+        });
+        this.addEvents(['click']);
+        $super(id, config);
+    },
+
+    toHTML: function () {
+        return '<input type="button" id="'+this.id+'" value="'+this.config.label+'" class="'+this.config.cls+'"/>'
+    },
+
+    render: function($super) {
+        $super();
+        $(this.id).observe('click', function(b) { this.fire('click', this); }.bind(this));
+    }
+});
+
+Backend.Component.Button.type = 'button';
+Backend.Component.registerType(Backend.Component.Button);
+
+/*
  * Page navigator class.
+ *
+ * Configuration attributes:
+ *   - template (.active, .inactive) - page templates.
+ *   - pageChosen - event handler called after page has been chosen.
+ *
+ * @todo displayFirstAndLast.
+ * @todo setChosenPage
  *--------------------------------------------------------------------------*/ 
 Backend.Component.PageNavigator = Class.create(Backend.Component, {
     initialize: function($super, elm, config) {
@@ -146,14 +252,15 @@ Backend.Component.PageNavigator = Class.create(Backend.Component, {
         $super(elm, config);
     },
 
+    // Sets page numbers array and current page.
     setSlice: function(slice, chosenPage) {
         this.slice = slice;
         this.chosenPage = chosenPage;
         this.render();
     },
 
-    html: function() {
-        s = '<div id="'+this.id+'" class="'+this.config.cls+'">';
+    toHTML: function() {
+        var s = '<div id="'+this.id+'" class="'+this.config.cls+'">';
         this.slice.each(function(no) {
             if (no == this.chosenPage) {
                 s += this.config.template.active.evaluate({id: this.id, no: no, label: no});
@@ -181,40 +288,21 @@ Backend.Component.PageNavigator.type = 'pageNavigator';
 Backend.Component.registerType(Backend.Component.PageNavigator);
 
 /*
- * Button class
- *--------------------------------------------------------------------------*/ 
-Backend.Component.Button = Class.create(Backend.Component, {
-    initialize: function($super, id, config) {
-        this.setDefaults({
-            label: ''
-        });
-        this.addEvents(['click']);
-        $super(id, config);
-    },
-
-    html: function () {
-        return '<input type="button" id="'+this.id+'" value="'+this.config.label+'"/>'
-    },
-
-    render: function($super) {
-        $super();
-        $(this.id).observe('click', function(b) { this.fire('click', this); }.bind(this));
-    }
-});
-
-Backend.Component.Button.type = 'button';
-Backend.Component.registerType(Backend.Component.Button);
-
-/*
- * Field class
+ * Abstract input field class. Provides default methods to get/set/reset value
+ * and to show validation messages.
+ *
+ * Configuration attributes:
+ *   - errorCls - Class for validator div.
+ *
+ * @todo validable
+ * @todo changed, blur, focus
  *--------------------------------------------------------------------------*/ 
 Backend.Component.Field = Class.create(Backend.Component, {
     initialize: function($super, id, config) {
+        this.setDefaults({
+            errorCls: 'validation-error'
+        });
         $super(id, config);
-        form = $C(config.form);
-        if (!Object.isUndefined(form)) {
-            form.own(this);
-        }
         if (!Object.isUndefined(config.value)) { this.setValue(config.value); }
     },
 
@@ -232,18 +320,27 @@ Backend.Component.Field = Class.create(Backend.Component, {
     },
 
     validatorHtml: function() {
-        return '<div id="'+this.id+'-validator" style="display: none;"></div>';
+        return '<div id="'+this.id+'-validator" class="'+this.config.errorCls+'" style="display: none;"></div>';
     },
 
     hideValidator: function() {
+        if ($(this.id+'-validator'))
+            $(this.id+'-validator').hide();
     },
 
     showError: function(msg) {
+        $(this.id+'-validator').update(msg);
+        $(this.id+'-validator').show();
     }
 });
 
 /*
- * Text field class
+ * Text field class.
+ *
+ * Configuration attributes:
+ *   - multiline - input/textarea.
+ *   - rows - (multiline) line count.
+ *   - cols - (multiline) column count.
  *--------------------------------------------------------------------------*/
 Backend.Component.TextField = Class.create(Backend.Component.Field, {
     initialize: function($super, id, config) {
@@ -255,8 +352,8 @@ Backend.Component.TextField = Class.create(Backend.Component.Field, {
         $super(id, config);
     },
 
-    html: function() {
-        s = '';
+    toHTML: function() {
+        var s = '';
         if (!this.config.multiline) {
             s += '<input type="text" id="'+this.id+'" class="'+this.config.cls+'"/>';
         } else {
@@ -280,8 +377,8 @@ Backend.Component.FlagField = Class.create(Backend.Component.Field, {
         $super(id, config);
     },
 
-    html: function() {
-        s = '';
+    toHTML: function() {
+        var s = '';
         s += '<input type="checkbox" id="'+this.id+'" class="'+this.config.cls+'"/>';
         return s;
     },
@@ -307,28 +404,74 @@ Backend.Component.FlagField.type = 'flagfield';
 Backend.Component.registerType(Backend.Component.FlagField);
 
 /*
- * Multiselect field
+ * Radio field class
  *--------------------------------------------------------------------------*/
-Backend.Component.MultiSelectField = Class.create(Backend.Component.Field, {
+Backend.Component.RadioField = Class.create(Backend.Component.Field, {
     initialize: function($super, id, config) {
         this.setDefaults({
-            size: 10,
+            cls: 'rChecks',
+            key: 'id',
+            label: 'name',
+            variants: []
+        });
+//        this.addEvents(['stateChange']);
+        $super(id, config);
+    },
+
+    toHTML: function() {
+        var s = '<span id="'+this.id+'">';
+        this.config.variants.each(function(v) {
+            s += '<input type="radio" name="'+this.id+'" class="'+this.config.cls+'" value="'+v[this.config.key]+'"/><label for="'+this.id+'" class="rLabel">'+v[this.config.label]+'</label>';
+        }.bind(this));
+        s += '</span>' + this.validatorHtml();
+        return s;
+    },
+
+//    render: function($super) {
+//        $super();
+//        $(this.id).observe('change', function() { this.fire('stateChange', this, $(this.id).checked); }.bind(this));
+//    },
+
+    getValue: function() {
+        var el = $(this.id).childElements().find(function(e) { return e.checked; });
+        return el ? el.value : null;
+    },
+
+    setValue: function(value) {
+        $(this.id).childElements().each(function(e) { if (e.value == value) e.checked = true; });
+    },
+
+    resetValue: function(value) {
+        $(this.id).childElements().each(function(el) { el.checked = false; });
+    }
+});
+Backend.Component.RadioField.type = 'radiofield';
+Backend.Component.registerType(Backend.Component.RadioField);
+
+/*
+ * Select field
+ *--------------------------------------------------------------------------*/
+Backend.Component.SelectField = Class.create(Backend.Component.Field, {
+    initialize: function($super, id, config) {
+        this.setDefaults({
+            size: 1,
             key: 'id',
             label: 'name'
         });
         $super(id, config);
     },
 
-    html: function() {
-        return '<select class="'+this.config.cls+'" id="'+this.id+'" multiple="yes" size="'+this.config.size+'"></select>';
+    toHTML: function() {
+        var size = this.config.size > 1 ? 'size="'+this.config.size+'"' : '';
+        return '<select class="'+this.config.cls+'" id="'+this.id+'" '+size+'></select>' + this.validatorHtml();
     },
 
     setItems: function(items) {
         $(this.id).update('');
 
-        v = this.getValue();
+        var v = this.getValue();
 
-        o = '';
+        var o = '';
         items.each(function(v) {
             o += '<option value="'+v[this.config.key]+'">'+v[this.config.label]+'</option>';
         }.bind(this));
@@ -336,10 +479,36 @@ Backend.Component.MultiSelectField = Class.create(Backend.Component.Field, {
         $(this.id).update(o);
 
         this.setValue(v);
+    }
+});
+Backend.Component.SelectField.type = 'selectfield';
+Backend.Component.registerType(Backend.Component.SelectField);
+
+/*
+ * Multiselect field.
+ *
+ * Value for this component could be set from array, or from pluck'ed
+ * key from array of objects. Default is array.
+ *
+ * Configuration options:
+ *   - size - Size (in lines) of input field.
+ *   - valueKey - Defines array key to pluck value.
+ *--------------------------------------------------------------------------*/
+Backend.Component.MultiSelectField = Class.create(Backend.Component.SelectField, {
+    initialize: function($super, id, config) {
+        this.setDefaults({
+            size: 10,
+            valueKey: 'id'
+        });
+        $super(id, config);
+    },
+
+    toHTML: function() {
+        return '<select class="'+this.config.cls+'" id="'+this.id+'" multiple="yes" size="'+this.config.size+'"></select>' + this.validatorHtml();
     },
 
     getValue: function() {
-        value = [];
+        var value = [];
         $A($(this.id).options).each(function(o) { 
             if (o.selected) { value.push(o.value); }
         });
@@ -348,6 +517,10 @@ Backend.Component.MultiSelectField = Class.create(Backend.Component.Field, {
 
     setValue: function(value) {
         this.resetValue();
+        if (this.config.valueKey != '') {
+            value = value.pluck(this.config.valueKey);
+        }
+        
         $A($(this.id).options).each(function(o) { 
             if (value.member(o.value)) o.selected = true;
         });
@@ -359,9 +532,44 @@ Backend.Component.MultiSelectField = Class.create(Backend.Component.Field, {
         });
     }
 });
-Backend.Component.MultiSelectField.type = 'multiselect';
+Backend.Component.MultiSelectField.type = 'multiselectfield';
 Backend.Component.registerType(Backend.Component.MultiSelectField);
 
+/*
+ * Signle-column list.
+ *--------------------------------------------------------------------------*/
+/*Backend.Component.ListField = Class.create(Backend.Component, {
+    initialize: function($super, id, config) {
+        this.setDefaults({
+            cls: 'bList'
+        });
+        this.items = [];
+        $super(id, config);
+    },
+    
+    toHTML: function() {
+        return $B('div', {cls: this.config.cls});
+    },
+    
+    setItems: function(value) {
+        
+    }
+    
+  
+});
+
+Backend.Component.ListField.type = 'listfield';
+Backend.Component.registerType(Backend.Component.ListField);
+			/*<div class="bList">
+				<div>Документ сцуко [<a href="">изменить</a>&nbsp;|&nbsp;<a href="">удалить</a>]</div>
+				<div><input type="text" class="small" name="" />&nbsp;[<a href="">удалить</a>]</div>
+				<div>Документ нахх [<a href="">изменить</a>&nbsp;|&nbsp;<a href="">удалить</a>]</div>
+				<div><select class="small" name=""><option>Документ сцуко</option></select>&nbsp;[<a href="">удалить</a>]</div>
+				<div>Документ бля [<a href="">изменить</a>&nbsp;|&nbsp;<a href="">удалить</a>]</div>
+				<div><select class="small" name=""><option>Документ сцуко</option></select>&nbsp;<a href="">Добавить</a></div>
+				<div><input class="small" type="text" name="values[name]"/>&nbsp;<a href="">Добавить</a></div>
+			</div-->*/
+  
 /*
  * Grid class
  *--------------------------------------------------------------------------*/
@@ -377,27 +585,37 @@ Backend.Component.Grid = Class.create(Backend.Component, {
         ]);
 
         $super(id, config);
-
-        this.columns = $A();
-
-        this.config.columns.each(function(c) {
-            type = c[0].capitalize();
-            cfg = c[1];
-
-            cfg.parentGrid = this;
-            clm = new Backend.Component.Grid.ColumnTypes[type](cfg);
-            this.columns.push(clm);
-        }.bind(this));
+        
+        if (this.config.columns) {
+            this.setColumns(this.config.columns);
+        }
     },
 
-    html: function() {
-        s =  '<table class="'+this.config.cls+'" id="'+this.id+'">';
+    setColumns: function(columns) {
+        this.config.columns = columns;
+        this.columns = $A();
+
+        columns.each(function(c) {
+            var type = c[0].capitalize();
+            var cfg = c[1];
+            cfg.parentGrid = this;
+            var clm = new Backend.Component.Grid.ColumnTypes[type](cfg);
+            this.columns.push(clm);
+        }.bind(this));
+        
+        this.render();
+    },
+
+    toHTML: function() {
+        var s =  '<table class="'+this.config.cls+'" id="'+this.id+'">';
         s += '<thead>';
         s += '<tr id="'+this.id+'-head">';
 
-        this.columns.each(function(c) {
-            s += '<th width="'+c.config.width+'">'+c.config.title+'</th>';
-        });
+        if (Object.isArray(this.columns)) {
+            this.columns.each(function(c) {
+                s += '<th width="'+c.config.width+'">'+c.config.title+'</th>';
+            });
+        };
 
         s += '</tr>';
         s += '</thead>';
@@ -409,12 +627,12 @@ Backend.Component.Grid = Class.create(Backend.Component, {
     },
 
     setItems: function(items) {
-        rowCb = this.config.rowCb;
+        var rowCb = this.config.rowCb;
 
-        s = '';
+        var s = '';
 
         $A(items).each(function(item) {
-            rowS = '';
+            var rowS = '';
 
             this.columns.each(function(c) {
                 rowS += c.getContainer(item, this.id);
@@ -436,16 +654,15 @@ Backend.Component.registerType(Backend.Component.Grid);
  *--------------------------------------------------------------------------*/
 Backend.Component.Grid.ColumnTypes = {};
 
-Backend.Component.Grid.ColumnTypes.Base = Class.create({
+Backend.Component.Grid.ColumnTypes.Base = Class.create(Backend.Configurable, {
     initialize: function(config) {
-        config = config || {};
-        this.config = config;
-        this.config = Object.extend({
+        this.setDefaults({
             id: '',
             title: '',
             width: '',
             parentGrid: ''
-        }, this.config);
+        });
+        this.configure(config);
     },
 
     afterLoad: function() {
@@ -463,21 +680,37 @@ Backend.Component.Grid.ColumnTypes.Base = Class.create({
 
 Backend.Component.Grid.ColumnTypes.Value = Class.create(Backend.Component.Grid.ColumnTypes.Base, {
     initialize: function($super, config) {
-        $super(config);
-
-        this.config = Object.extend({
+        this.setDefaults({           
             getter: Prototype.EmptyFn,
             formatter: Prototype.EmptyFn,
-            value: null
-        }, this.config);
+            value: null,
+            dictionaryKey: 'id',
+            dictionaryValue: 'name'
+        });
+
+        $super(config);
+        
+        if (!Object.isUndefined(this.config.dictionary)) {
+            var dic = {};
+            this.config.dictionary.each(function(d) {
+                dic[d[this.config.dictionaryKey]] = d[this.config.dictionaryValue];
+            }.bind(this));
+            this.config.dictionary = dic;
+        }
     },
 
     getValue: function($super, row) {
-        if (this.config.value != null) return this.config.value;
-        if (this.config.getter != Prototype.EmptyFn) { return this.config.getter(row, this); }
-        if (this.config.formatter != Prototype.EmptyFn) { return this.config.formatter(row, this); }
-
-        return $super(row);
+        if (this.config.value != null) { value = this.config.value; } else 
+        if (this.config.getter != Prototype.EmptyFn) { value = this.config.getter(row, this); } else 
+        if (this.config.formatter != Prototype.EmptyFn) { value = this.config.formatter(row, this); } else {
+            var value = $super(row);
+        };
+        
+        if (!Object.isUndefined(this.config.dictionary)) {
+            value = this.config.dictionary[value];
+        }
+        
+        return value;
     }
 });
 
@@ -486,17 +719,18 @@ Backend.Component.Grid.ColumnTypes.Action = Class.create(Backend.Component.Grid.
         $super(config);
 
         this.config = Object.extend({
-            keyProperty: 'id'
+            keyProperty: 'id',
+            action: null
         }, this.config);
 
         config.parentGrid.addEvents([this.config.id+'Action']);
     },
 
     getValue: function($super, row) {
-        onClick = "$C('"+this.config.parentGrid.id+"').fire('action', '"+this.config.id+"', '"+row[this.config.keyProperty]+"');";
-        onClick += "$C('"+this.config.parentGrid.id+"').fire('"+this.config.id+"Action', '"+row[this.config.keyProperty]+"');";
+        var onClick = "$C('"+this.config.parentGrid.id+"').fire('action', '"+this.config.action+"', '"+row[this.config.keyProperty]+"');";
+        onClick += "$C('"+this.config.parentGrid.id+"').fire('"+this.config.action+"Action', '"+row[this.config.keyProperty]+"');";
 
-        value = $super(row);
+        var value = $super(row);
         value = '<a href="#" class="'+this.config.parentGrid.id+'-action-'+this.config.action+'" onclick="'+onClick+'">'+value+'</a>';
         return value;
     }
@@ -520,15 +754,14 @@ Backend.Component.Grid.ColumnTypes.Checkbox = Class.create(Backend.Component.Gri
     },
 
     getValue: function($super, row) {
-        onClick = "$C('"+this.config.parentGrid.id+"').fire('"+this.config.id+"StateChange', this.checked, '"+row[this.config.keyProperty]+"');";
-
-        if (Object.isUndefined(row[this.config.id])) {
-            checked = '';
-        } else {
+        var onClick = "$C('"+this.config.parentGrid.id+"').fire('"+this.config.id+"StateChange', this.checked, '"+row[this.config.keyProperty]+"');";
+        
+        var checked = '';
+        if (!Object.isUndefined(row[this.config.id])) {
             checked = (row[this.config.id] == true) ? 'checked' : '';
         }
 
-        value = '<input type="checkbox" class="'+this.config.parentGrid.id+'-checkbox" onclick="'+onClick+'" '+checked+'></input>';
+        var value = '<input type="checkbox" class="'+this.config.parentGrid.id+'-checkbox" onclick="'+onClick+'" '+checked+'></input>';
         return value;
     }
 });
