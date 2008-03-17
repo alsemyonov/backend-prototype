@@ -1,23 +1,12 @@
-/*  Backend Prototype JavaScript enchanser, version 0.0.1
- *  (c) 2007 gzigzigzi
- *--------------------------------------------------------------------------*/
-
-/*--------------------------------------------------------------------------
-   Observable mixin.
-  
-   C = Class.Create({
-       initialize: function() {
-           // Define events
-           this.addEvents(['onSave', 'onEdit']);
-       }
-   });
-   C.addMethods(Backend.Observable);
-
-   c.on('onSave', function(args) { } );   // Add event handler.
-   c.fire('onSave', 1);                   // Fire event.
-   c.purge();                             // Remove all event handlers.
- *---------------------------------------------------------------------------*/
+/**
+ * Observable mix-in.
+ * @static
+ */
 Backend.Observable = {
+    addEvent: function(listener) {
+        this.addEvents([listener]);
+    },
+    /** Adds events */
     addEvents: function(newListeners) {
         this.listeners = this.listeners || {};
 
@@ -27,6 +16,7 @@ Backend.Observable = {
             }
         }.bind(this));
     },
+    /** Adds event handler */
     on: function(name, handler) {
         this.listeners = this.listeners || {};
 
@@ -34,16 +24,20 @@ Backend.Observable = {
         this.listeners[name].push(handler);
 
     },
-    onAll: function(handlers) {
-        $H(this.listeners).each(function(p) {
-            evtName = p.key;
+    /** Adds event handlers from object */
+    allOn: function(handlers) {
+        if (Object.isUndefined(handlers)) return;
+        $H(this.listeners).keys().each(function(evtName) {
             if (!Object.isUndefined(handlers[evtName]))
                 this.on(evtName, handlers[evtName]);
         });    
     },
+    /** Fires event */
     fire: function() {
         args = $A(arguments);
         name = args.shift();
+
+        this.listeners = this.listeners || {};
 
         if (this.listeners[name] != undefined) {
             this.listeners[name].each(function(e) { 
@@ -51,16 +45,20 @@ Backend.Observable = {
             });
         }
     },
+    /** Purges all events */
     purge: function() {
         this.listeners = {};
     },
-    remove: function(name, handler) {
+    /** Removes event handler */
+    removeEvent: function(name, handler) {
         if (this.listeners[name] == undefined) return;
         this.listeners[name] = this.listeners[name].without(handler);
     },
+    /** Suspends event handling */
     suspend: function() {
         this.suspendEvents = true;
     },
+    /** Resumes event handling */
     resume: function() {
         this.suspendEvents = false;
     }

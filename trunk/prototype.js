@@ -1,36 +1,77 @@
 /* 43343*/ 
 Backend.Prototype = {};
 
+/**
+ * Hash class (prototype).
+ * @name Hash
+ * @class
+ */
+Hash.addMethods(
+/** @scope Hash.prototype */
+{
+  isset: function(key) {
+    return this.keys().member(key);
+  }
+});
 
-/*
- * Produces php-style query string.
- *--------------------------------------------------------------------------*/ 
-/*Hash.addMethods({
-    'toQueryString': function() {
-        toQueryPair = function(key, value) {
-            if (Object.isUndefined(value)) return key;
-            return key + '=' + encodeURIComponent(String.interpret(value));
-        }
-
-        stub = function(o, prefix, suffix) {
-            return o.map(function(pair) {
-                var key = encodeURIComponent(pair.key), values = pair.value;
-
-                if (values && typeof values == 'object') {
-                    if (Object.isArray(values)) {
-                        return values.map(toQueryPair.curry(prefix+key+suffix+'[]')).join('&');
-                    } else {
-                        values = stub($H(values), prefix+'['+key, ']');
-                        return values;
-                    }
-                }
-                return toQueryPair(key, values);
-          }).join('&');
-      };
-
-      return stub(this, '', '');
+/**
+ * Array class (prototype). Contains extension for arrays of objects.
+ * @name Array
+ * @class
+ */
+Object.extend(Array.prototype,
+/** @scope  Array.prototype */
+{
+  /** Gets index of first element in array by its property value */
+  indexOfBy: function(key, prop) {
+    prop = prop || 'id';
+    for(var i = 0; i < this.length; i++) {
+      if (Object.isHash(this[i])) {
+        var value = this[i].get(prop);
+      } else {
+        var value = this[i][prop];
+      }
+      if (value == key) {
+        return i;
+      }
     }
-});*/
+    return -1;
+  },
+  /** Gets object from array by it's property value */
+  get: function(key, prop) {
+    prop = prop || 'id';
+    return this.find(function(cur) {
+      if (Object.isHash(cur)) {
+        var value = cur.get(prop);
+      } else {
+        var value = cur[prop];
+      }
+      if (value == key) { return cur; }
+      return false;
+    });
+  },
+  /** Replaces array item by it's key */
+  set: function(key, value, prop) {
+    prop = prop || 'id';    
+    i = this.indexOfBy(key, prop);
+    if (i == -1) {
+      this.push(value);
+    } else {
+      this[i] = value;
+    }
+  },
+  /** Checks array item existance */
+  isset: function(key, prop) {
+    return this.indexOfBy(key,prop) != -1;
+  },
+  /** Removes item from array by key */
+  unset: function(key, prop) {
+    i = this.indexOfBy(key, prop);
+    if (i != -1) {
+        delete this[i];
+    }
+  }
+});
 
 Backend.Prototype.Form = {
     deserializeElements: function(form, elements, values) {

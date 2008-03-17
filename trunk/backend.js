@@ -2,12 +2,19 @@
  *  (c) 2007 roTuKa <rotuka@gmail.com>, gzigzigzi <gzigzigzi@gmail.com>
  *--------------------------------------------------------------------------*/
 
+/**
+ * @namespace Base backend namespace
+ * @static
+ */
 var Backend = {
+  /** Backend version */
   Version: '0.0.2',
+  
+  /** @private */
   require: function(libraryName) {
     // inserting via DOM fails in Safari 2.0, so brute force approach
     document.write('<script type="text/javascript" src="'+libraryName+'"></script>');
-  },
+  }, 
   load: function() {
     if((typeof Prototype=='undefined') || 
        (typeof Element == 'undefined') || 
@@ -21,7 +28,7 @@ var Backend = {
     }).each( function(s) {
       var path = s.src.replace(/backend\.js(\?.*)?$/,'');
       var includes = s.src.match(/\?.*load=([a-z,]*)/);
-      (includes ? includes[1] : 'prototype,ajax,observable,configurable,component,data,behaviour').split(',').each(
+      (includes ? includes[1] : 'prototype,observable,configurable,ajax,component,datasource,behaviour').split(',').each(
        function(include) { Backend.require(path+include+'.js') });
     });
   }
