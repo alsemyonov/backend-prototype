@@ -1,170 +1,190 @@
-Backend.Behavior = Class.create({
-    initialize: function(subs, config) {
-        this.subs = subs;
+/**
+ * Behavior base class.
+ * @class Backend.Behavior
+ */
+Backend.Behavior = Class.create(
+/** @scope Backend.Behavior.prototype */
+{
+    initialize: function(attached, config) {
+        this.attached = attached;
         this.configure(config);
-        $H(this.subs).each(function(pair) {
+        $H(this.attached).each(function(pair) {
             if (pair.value)
                 this.attach(pair.key, pair.value);
         }.bind(this));
-        this.on(config);
+        this.allOn(config);
     },
-
-    attach: Prototype.EmptyFn
+    attach: function(id, object) {      
+    }
 }, Backend.Observable, Backend.Configurable);
 
-Backend.Behavior.Editor = Class.create(Backend.Behavior, {
-    initialize: function($super, subs, config) {
+/**
+ * Defines behavior for in-page list.
+ * @class Backend.Behavior.List
+ */
+Backend.Behavior.List = Class.create(Backend.Behavior, 
+/** @scope Backend.Behavior.List.prototype */
+{
+    initialize: function($super, attached, config) {
         this.setDefaults({
-            saveItem: Prototype.emptyFunction,
-            getItem: Prototype.emptyFunction,
-            proxy: null
+          paginate: [null, null],
+          getList: Prototype.emptyFunction
         });
-
-        this.addEvents(['edit', 'save', 'cancel']);
-
-        $super(subs, config);
-
-        this.keyValue = null;
-
-        if (this.config.source) {
-            this.config.saveItem = this.config.source.saveItem.bind(this.config.source);
-            this.config.getItem = this.config.source.getItem.bind(this.config.source);
-        }
-    },
-
-    attach: function(type, sub) {
-        switch(type) {
-            case 'saveButton':
-                sub.on('click', this.saveClick.bind(this));
-            break;
-            case 'cancelButton':
-                sub.on('click', this.cancelClick.bind(this));
-            break;
-        }
-    },
-
-    edit: function(key) {
-        this.subs.form.resetValues();
-        if (!Object.isUndefined(key)) {
-            this.keyValue = key;
-            this.config.getItem(key, this.itemReceived.bind(this));
-        } else {
-            this.keyValue = null;
-            this.itemReceived({});
-        }
-    },
-
-    itemReceived: function(json) {
-        if (this.config.closeOnSave) {
-            this.subs.container.show();
-        }
-
-        this.fire('edit', this, this.keyValue, json);
-
-        this.subs.form.setValues(json);
-    },
-
-    saveClick: function() {
-        var v = this.subs.form.getValues();
-        this.config.saveItem(this.keyValue, v, this.saveConfirmed.bind(this));
-
-        this.fire('save', this, this.keyValue, v);
-    },
-
-    saveConfirmed: function(json) {
-        if (json.result == false) {
-            this.subs.form.owned.invoke('hideValidator');
-            if (json.errors) {
-                $H(json.errors).each(function(pair) {
-                    var field = $C(pair.key);
-                    field.showError(pair.value);
-                });
-            }
-        } else {        
-            if (this.config.closeOnSave) {
-                this.subs.container.hide();
-            }
-            this.subs.form.resetValues();
-        }
-    },
-
-    cancel: function() {
-        this.cancelClick();
-    },
-
-    cancelClick: function() {
-        this.fire('cancel', this);
-
-        if (this.config.closeOnSave) {
-            this.subs.container.hide();
-        }
-        this.subs.form.resetValues();
-    }
-});
-
-Backend.Behavior.List = Class.create(Backend.Behavior, {
-    initialize: function($super, subs, config) {
-        this.setDefaults({
-            getList: Prototype.emptyFunction,
-            removeItem: Prototype.emptyFunction
-        });
-
-        this.addEvents(['load', 'action', 'pageChosen']);
-
-        $super(subs, config);
-
+        
+        $super(attached, config);
         if (this.config.source) {
             this.config.getList = this.config.source.getList.bind(this.config.source);
-            this.config.removeItem = this.config.source.removeItem.bind(this.config.source);
+            this.config.source.on('changed', this.load.bind(this));
+            this.config.source.on('save', this.load.bind(this));
+            this.config.source.on('remove', this.load.bind(this));
         }
-        
         this.page = 1;
     },
-
-    attach: function(type, sub) {
-        switch(type) {
-            case 'list':
-                sub.on('action', this.action.bind(this));
-            break;
-
-            case 'navigator':
-                sub.on('pageChosen', this.pageChosen.bind(this));
-            break;
-        }
-    },
-
     load: function() {
         this.config.getList({
             page: this.page, 
             paginate: this.config.paginate
-        }, this.setItems.bind(this));
+        }, this.onLoad.bind(this));
     },
-
-    setItems: function(json) {
-        this.subs.list.setItems(json.items);
-        if (!Object.isUndefined(this.subs.total)) {
-            this.subs.total.update(json.total);
+    onLoad: function(r) {
+      this.attached.list.setAllRows(r.records);
+        if (!Object.isUndefined(this.attached.total)) {
+            $(this.attached.total).update(r.total);
         }
-
-        if ((!Object.isUndefined(this.subs.navigator)) && (!Object.isUndefined(json.slice))) {
-            this.subs.navigator.setSlice(json.slice, this.page);
-            if (!Object.isUndefined(this.subs.totalPages)) {
-                this.subs.totalPages.update(json.totalPages);
-            }
-        }
-    },
-
-    pageChosen: function(nav, page) {
-        this.fire('pageChosen', this, page);
-        this.page = page;
-        this.load();
-    },
-
-    remove: function(key) {
-        this.config.removeItem(key, Prototype.emptyFunction);
-    },
-
-    action: function(action, arg) {
-        this.fire('action', this, action, arg);
     }
+});
+
+/**
+ * @class Backend.Behavior.Editor
+ */
+Backend.Behavior.Editor = Class.create(Backend.Behavior,
+/** @scope Backend.Behavior.Editor.prototype */
+{
+  initialize: function($super, attached, config) {
+      this.setDefaults({
+        getItem: Prototype.emptyFunction,
+        saveItem: Prototype.emptyFunction,
+        removeItem: Prototype.emptyFunction,        
+        key: null
+      });
+      $super(attached, config);
+
+      if (this.config.source) {
+          this.config.saveItem = this.config.source.saveItem.bind(this.config.source);
+          this.config.getItem = this.config.source.getItem.bind(this.config.source);
+          this.config.removeItem = this.config.source.removeItem.bind(this.config.source);
+      }
+  },
+  attach: function($super, id, obj) {
+    switch(id) {
+      case 'list':
+        obj.on('editAction', function(sender, x, y) { 
+          if (this.config.key) {
+            this.edit(this.config.source.data[y][this.config.key]);
+          } else {
+            this.edit(y);
+          }
+        }.bind(this));
+        
+        obj.on('removeAction', function(sender,x,y) {
+          if (this.config.key) {
+            this.remove(this.config.source.data[y]['id']);
+          } else {
+            this.remove(y);
+          }
+        }.bind(this));
+      break;
+      case 'saveButton':
+        obj.on('click', this.save.bind(this));
+      break;
+      case 'cancelButton':
+        obj.invoke('on', 'click', this.cancel.bind(this));
+      break;
+    }
+  },
+  edit: function(key) {
+    if (this.attached.container) {
+      $(this.attached.container).show();
+    }
+    this.attached.form.values().invoke('resetValue');
+    this.keyValue = key;
+    this.config.getItem(key, this.onEdit.bind(this));
+  },
+  add: function() {
+    if (this.attached.container) {
+      $(this.attached.container).show();
+    }
+    this.attached.form.values().invoke('resetValue');
+    this.onEdit({});
+  },
+  save: function() {
+    var v = {};
+    this.attached.form.each(function(f) {
+      v[f.key] = f.value.getValue();
+    });
+    this.config.saveItem(this.keyValue, v, this.onSaveSuccess.bind(this), this.onSaveFailure.bind(this));
+  },  
+  remove: function(key) {
+    this.config.removeItem(key, this.onRemoveSuccess.bind(this));
+  },
+  onEdit: function(item) {
+    this.attached.form.each(function(c) {
+      if (!Object.isUndefined(item[c.key])) {
+        c.value.setValue(item[c.key]);
+      }
+    });   
+  },
+  onSaveSuccess: function(id) {
+    if (this.attached.container) {
+      $(this.attached.container).hide();
+    }    
+    this.attached.form.values().invoke('resetValue');
+    if (this.attached.container) {
+      $(this.attached.container).hide();
+    };
+    this.keyValue = undefined;
+  },
+  onSaveFailure: function(errors) {
+    $H(errors).each(function(pair) {
+      var field = this.attached.form.get(pair.key);
+      field.showError(pair.value);
+    }.bind(this));
+  },
+  onRemoveSuccess: function() {
+  },
+  cancel: function() {
+    if (this.attached.container) {
+      $(this.attached.container).hide();
+    }    
+    this.attached.form.values().invoke('resetValue');
+  }
+});
+
+Backend.Behavior.LinkedLists = Class.create(Backend.Behavior,
+/** @scope Backend.Behavior.Editor.prototype */
+{
+  initialize: function($super, attached, config) {
+    this.addEvents(['change']);
+    $super(attached, config);
+  },
+  attach: function($super, id, obj) {
+    switch(id) {
+        case 'selects':
+            var i = 0;
+            obj.each(function(s) {
+                if (i > 0) {
+                    s.select.disable();
+                } else {
+                    Backend.DataSource.Read(s.select, s.url);
+                }
+                s.select.on('change', function(s, sender, value) {
+                    var filter = {}; filter[s.filter] = value;
+                    Backend.DataSource.Read(s.select, s.url, {filter: filter});
+                    s.select.enable();
+                }.bind(this).curry(obj[i+1]));
+                i++
+            }.bind(this));
+        break;
+    }
+  }
 });
