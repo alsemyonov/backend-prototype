@@ -264,8 +264,8 @@ Backend.Prototype.Select = {
     formatOptions: function(items, options)
     {
         options = Object.extend({
-            valueField: 'id', 
-            labelField: 'name',
+            valueMember: 'id', 
+            displayMember: 'name',
             before: '',
             after: ''
         }, options);
@@ -275,7 +275,7 @@ Backend.Prototype.Select = {
         if (items && items.length > 0) {
             items.each(function(option) {
                 option = $H(option);
-                newOptions += '<option value="' + option.get($options.get('valueField')) + '">' + option.get($options.get('labelField'))+ '</option>';
+                newOptions += '<option value="' + option.get($options.get('valueMember')) + '">' + option.get($options.get('displayMember'))+ '</option>';
             });
         }
         newOptions += $options.get('after');
@@ -312,7 +312,13 @@ Backend.Prototype.Select = {
                     values = json[$options.itemsProperty];
 
                 $select.setOptions(values, $options);
-                $select.disabled = false;
+
+                if ($select.childElements().length == 0) {
+                    $select.disabled = true;
+                } else {
+                    $select.disabled = false;
+                }
+
                 $options.onComplete();
             }
         });

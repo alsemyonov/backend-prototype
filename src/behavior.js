@@ -30,7 +30,6 @@ Backend.Behavior.List = Class.create(Backend.Behavior,
           paginate: [null, null],
           getList: Prototype.emptyFunction
         });
-        
         $super(attached, config);
         if (this.config.source) {
             this.config.getList = this.config.source.getList.bind(this.config.source);
@@ -39,19 +38,39 @@ Backend.Behavior.List = Class.create(Backend.Behavior,
             this.config.source.on('remove', this.load.bind(this));
         }
         this.page = 1;
+        this.filter = {};        
     },
-    load: function() {
-        this.config.getList({
-            page: this.page, 
-            paginate: this.config.paginate
-        }, this.onLoad.bind(this));
-    },
-    onLoad: function(r) {
-      this.attached.list.setAllRows(r.records);
-        if (!Object.isUndefined(this.attached.total)) {
-            $(this.attached.total).update(r.total);
-        }
+  attach: function($super, type, obj) {
+    if (type == 'pageSwitch') {
+
+        obj.on('change', function(sender, page) {
+            this.page = page;
+            this.load();
+        }.bind(this));
     }
+  },
+  applyFilter: function(filter) {
+    this.filter = filter;
+  },
+  resetFilter: function() {
+    this.filter = {};
+  },    
+  load: function() {
+    this.config.getList({
+            page: this.page, 
+            paginate: this.config.paginate,
+            filter: this.filter
+        }, this.onLoad.bind(this));
+  },
+  onLoad: function(r) {
+    this.attached.list.setAllRows(r.records);
+    if (!Object.isUndefined(this.attached.total)) {
+        $(this.attached.total).update(r.total);
+    }
+    if (this.attached.pageSwith) {
+        this.attached.pageSwith.setAllRows(this.page);
+    }
+  }
 });
 
 /**
