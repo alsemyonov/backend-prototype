@@ -131,7 +131,7 @@ Backend.Component.Base = Class.create(
      * @returns {string} Component HTML
      */
     toHTML: function() {
-        return $B('div', {id: this.id, class: this.config.cls});
+        return $B('div', {id: this.id, 'class': this.config.cls});
     },
     /** Renders component */
     render: function(target) {
@@ -182,14 +182,13 @@ Backend.Component.Button = Class.create(Backend.Component.Base,
         $super(id, config);
     },
     toHTML: function () {
-        return $B('input', {type: 'button', id: this.id, class: this.config.cls, value: this.config.label});
+        return $B('input', {type: 'button', id: this.id, 'class': this.config.cls, value: this.config.label});
     },
     render: function($super) {
         $super();
         $(this.id).observe('click', function(b) { this.fire('click', this); }.bind(this));
     }
 });
-
 Backend.Component.register(Backend.Component.Button, 'button');
 
 /**
@@ -481,62 +480,100 @@ Backend.Component.Field.MultiSelect = Class.create(Backend.Component.Field.Selec
 Backend.Component.register(Backend.Component.Field.MultiSelect, 'multiselectfield');
 
 /**
+ * @class Backend.Component.Switcher
+ * @todo Field.DataBound?
+ */
+Backend.Component.Switcher = Class.create(Backend.Component.Field.DataBound,
+{
+  initialize: function($super, id, config) {
+    this.setDefaults({
+      template: {
+        inactive: new Template('<li id="#{id}"><a href="#">#{name}</a></li>'),
+        active: new Template('<li id="#{id}" class="chosen">#{name}</a></li>'),
+        activator: new Template('<a class="dashed" id="#{id}-activator" href="#">#{name}</a>')
+      },
+      selected: 0
+    });
+    this.addEvents(['change']);
+    $super(id, config);
+    this.selected = this.config.selected;
+  },
+  render: function($super) {
+    this.renderVariants();
+    this.updateActivator();
+  },
+  updateActivator: function() {
+    if ($(this.id+'-activator')) {
+      var d = this.data[this.selected] || {};
+      d = Object.clone(d);
+      d.id = this.id;
+      $(this.id+'-activator').replace(this.config.template.activator.evaluate(d));
+      $(this.id+'-activator').observe('click', function(e) { $(this.id+'-container').show(); return false;}.bind(this));
+    }
+  },
+  renderVariants: function() {
+    if (!Object.isArray(this.data)) return;
+    var mrk = ''
+    var n = 0;
+    this.data.each(function(d) {
+      var id = this.id+'-variant-'+n;
+      if (this.selected == n) {
+        mrk += this.config.template.active.evaluate(Object.extend(Object.clone(d), {id: id}));
+      } else {
+        mrk += this.config.template.inactive.evaluate(Object.extend(Object.clone(d), {id: id}));
+      };
+      n++;
+    }.bind(this));
+    $(this.id).update(mrk);
+    n = 0;
+    this.data.each(function(d) {
+      $(this.id+'-variant-'+n).observe('click', function(e) {
+        this.scope.setValue.bind(this.scope)(this.n);
+        if ($(this.scope.id+'-container')) {
+          $(this.scope.id+'-container').hide();
+        }
+      }.bind({scope: this, n: n++}));
+    }.bind(this));
+  },
+  setValue: function(value) {
+    this.selected = value;
+    this.fire('change', this, value);
+    this.renderVariants();
+    this.updateActivator();
+  },
+  getValue: function() {
+    return this.data[this.selected];
+  },
+  resetValue: function() {
+    this.setValue(null);
+  },
+  setAllRows: function($super, data) {
+    $super(data);
+    this.renderVariants();
+  }
+});
+Backend.Component.register(Backend.Component.Switcher, 'switcher');
+
+/**
  * Page navigator class.
  * @class Backend.Component.PageNavigator
  */ 
-Backend.Component.PageNavigator = Class.create(Backend.Component.Base, {
+Backend.Component.Switcher.Page = Class.create(Backend.Component.Switcher, {
     initialize: function($super, elm, config) {
         this.setDefaults({
             template: {
-                active: new Template('<span class="chosen" id="#{id}-page#{no}">#{label}</span>'),
-                inactive: new Template('<span id="#{id}-page#{no}"><a href="#" id="#{id}-page#{no}-link">#{label}</a></span>')
+                active: new Template('<span class="chosen" id="#{id}">#{pageNo}</span>'),
+                inactive: new Template('<span id="#{id}"><a href="#">#{pageNo}</a></span>')
             }
         });
-
-        this.chosenPage = 0;
-        this.slice = [];
-
-        this.addEvents(['pageChosen']);
-
         $super(elm, config);
     },
-    setSlice: function(slice, chosenPage) {
-        this.slice = slice;
-        this.setChosenPage(chosenPage);
-    },
-    setChosenPage: function(chosenPage) {
-        if (this.slice.member(chosenPage)) {
-            this.chosenPage = chosenPage;
-        } else {
-            this.chosenPage = this.slice.last();
-        }
-        this.render();
-    },
-    toHTML: function() {
-        var s = '<div id="'+this.id+'" class="'+this.config.cls+'">';
-        this.slice.each(function(no) {
-            if (no == this.chosenPage) {
-                s += this.config.template.active.evaluate({id: this.id, no: no, label: no});
-            } else {
-                s += this.config.template.inactive.evaluate({id: this.id, no: no, label: no});
-            }
-        }.bind(this));
-        s += '</div>';
-
-        return s;
-    },
-    render: function($super, elm) {
-        $super(elm);
-        this.slice.each(function(no) {
-            if (no != this.chosenPage) {
-                lElm = $(this.id + '-page' + no +'-link');
-                if (lElm != undefined)
-                    lElm.observe('click', function() { this.fire('pageChosen', this, no); return false; }.bind(this));
-            }
-        }.bind(this));
+    setAllRows: function($super, data) {
+      data = data.map(function(d) { return {pageNo: d}; });
+      $super(data);
     }
 });
-Backend.Component.register(Backend.Component.PageNavigator, 'pageNavigator');
+Backend.Component.register(Backend.Component.Switcher.Page, 'pageSwitcher');
 
 /**
  * Grid class.
@@ -569,8 +606,7 @@ Backend.Component.Grid = Class.create(Backend.Component.Field.DataBound,
       $B('tbody', {id: this.id + '-body'}),
       $B('tfoot', {id: this.id + '-foot'})
     ]);
-  },
-  
+  }, 
   render: function($super) {
     $super();    
     this.renderHeader();
@@ -685,6 +721,12 @@ Backend.Component.Grid = Class.create(Backend.Component.Field.DataBound,
         var clk = "$C('"+this.id+"').fire('dispatchAction', '"+c.action+"', "+x+", "+y+"); return false;";
         value = $B('a', {href: '#', onClick: clk}, value);
       };
+      if (c.boolValues) {
+        value ? value = c.boolValues[0] : value = c.boolValues[1];
+      }     
+      if (value == "") {
+        value = c.spaceReplacement;
+      }
       value = value || c.nullReplacement;
       x++;
       var cls = this.id+'-cell-column-'+x+' '+this.id+'-cell-row-'+y;
