@@ -2,76 +2,126 @@
 Backend.Prototype = {};
 
 /**
- * Hash class (prototype).
- * @name Hash
- * @class
+ * Element extensions.
+ * @class Backend.Prototype.Element
  */
-Hash.addMethods(
-/** @scope Hash.prototype */
-{
-  isset: function(key) {
-    return this.keys().member(key);
+Backend.Prototype.Element = {
+  /**
+   * Moves element down (after next sibling).
+   * @todo steps
+   */
+  moveDown: function (el) {
+    var row = $(el);
+    var nextRow = row.next();
+    if (nextRow != null) {
+      row.parentNode.insertBefore(nextRow.cloneNode(true), row);
+      nextRow.remove();
+    }
+  },
+  
+  /**
+   * Moves element up (before previous sibling).
+   * @todo steps
+   */
+  moveUp: function (el) {
+    var row = $(el);
+    var prevRow = row.previous();
+    if (prevRow != null) {
+      prevRow.parentNode.insertBefore(row.cloneNode(true), prevRow);
+      row.remove();
+    }
+  },
+  
+  /**
+   * Calls method if element exists.
+   */
+  ifExists: function(el, f) {
+    if ($(el)) {
+      f();
+      return true;
+    }
+    return null;
+  },
+  
+  /**
+   * Creates element usesing another element innerHtml as template.
+   */
+  evaluate: function(el, attrs) {
+    var elTpl = $(el).innerHTML;
+    var tpl = new Template(elTpl);
+    return tpl.evaluate(attrs);
   }
-});
+};
 
 /**
- * Array class (prototype). Contains extension for arrays of objects.
- * @name Array
- * @class
+ * <SELECT> tag extensions.
+ * @class Backend.Prototype.Select
  */
-Object.extend(Array.prototype,
-/** @scope  Array.prototype */
-{
-  /** Gets index of first element in array by its property value */
-  indexOfBy: function(key, prop) {
-    prop = prop || 'id';
-    for(var i = 0; i < this.length; i++) {
-      if (Object.isHash(this[i])) {
-        var value = this[i].get(prop);
-      } else {
-        var value = this[i][prop];
-      }
-      if (value == key) {
-        return i;
-      }
+Backend.Prototype.Select = {
+  formatOptions: function(items, options) {
+    options = Object.extend({
+      valueMember: 'id', 
+      displayMember: 'name',
+      before: '',
+      after: ''
+    }, options);
+    var $options = $H(options);
+
+    var newOptions = $options.get('before');
+    if (items && items.length > 0) {
+        items.each(function(option) {
+        option = $H(option);
+        newOptions += '<option value="' + option.get($options.get('valueMember')) + '">' + option.get($options.get('displayMember'))+ '</option>';
+      });
     }
-    return -1;
+    newOptions += $options.get('after');
+    return newOptions;
   },
-  /** Gets object from array by it's property value */
-  get: function(key, prop) {
-    prop = prop || 'id';
-    return this.find(function(cur) {
-      if (Object.isHash(cur)) {
-        var value = cur.get(prop);
-      } else {
-        var value = cur[prop];
+
+  setOptions: function(select, items, options)
+  {
+    newOptions = Backend.Prototype.Select.formatOptions(items, options);
+    $select = $(select);
+    $select.update(newOptions);
+  },
+
+  loadOptions: function(select, url, options)
+  {
+    options = options || {};
+    Object.extend(options, typeof url == 'string' ? {'url': url} : url);
+
+    options = Object.extend({
+    itemsProperty: 'items', 
+    onComplete: Prototype.emptyFunction
+    }, options);
+    var $options = options;
+
+    var $select = $(select);
+    $select.disabled = true;
+    new Ajax.Request($options.url, {
+      method: 'get',
+      transport: 'xhr',
+      onComplete: function(t, json) {
+      json = json || t.responseJS || t.responseText.evalJSON();
+
+      if (options.itemsProperty!='')
+        values = json[$options.itemsProperty];
+
+        $select.setOptions(values, $options);
+
+        if ($select.childElements().length == 0) {
+          $select.disabled = true;
+        } else {
+          $select.disabled = false;
+        }
+
+        $options.onComplete();
       }
-      if (value == key) { return cur; }
-      return false;
     });
-  },
-  /** Replaces array item by it's key */
-  set: function(key, value, prop) {
-    prop = prop || 'id';    
-    i = this.indexOfBy(key, prop);
-    if (i == -1) {
-      this.push(value);
-    } else {
-      this[i] = value;
-    }
-  },
-  /** Checks array item existance */
-  isset: function(key, prop) {
-    return this.indexOfBy(key,prop) != -1;
-  },
-  /** Removes item from array by key */
-  unset: function(key, prop) {
-    i = this.indexOfBy(key, prop);
-    if (i != -1) {
-        delete this[i];
-    }
+    return select;
   }
-});
+};
+
 
 Backend.Prototype.Form = {
     deserializeElements: function(form, elements, values) {
@@ -244,88 +294,6 @@ Backend.Prototype.Table = {
     }
 };
 
-Backend.Prototype.Element = {
-    moveDown: function (el) {
-        row = $(el);
-        nextRow = row.next();
-        row.parentNode.insertBefore(nextRow.cloneNode(true), row);
-        nextRow.remove();
-    },
-
-    moveUp: function (el) {
-        row = $(el);
-        prevRow = row.previous();
-        prevRow.parentNode.insertBefore(row.cloneNode(true), prevRow);
-        row.remove();
-    }
-};
-
-Backend.Prototype.Select = {
-    formatOptions: function(items, options)
-    {
-        options = Object.extend({
-            valueMember: 'id', 
-            displayMember: 'name',
-            before: '',
-            after: ''
-        }, options);
-        var $options = $H(options);
-
-        var newOptions = $options.get('before');
-        if (items && items.length > 0) {
-            items.each(function(option) {
-                option = $H(option);
-                newOptions += '<option value="' + option.get($options.get('valueMember')) + '">' + option.get($options.get('displayMember'))+ '</option>';
-            });
-        }
-        newOptions += $options.get('after');
-        return newOptions;
-    },
-
-    setOptions: function(select, items, options)
-    {
-        newOptions = Backend.Prototype.Select.formatOptions(items, options);
-        $select = $(select);
-        $select.update(newOptions);
-    },
-
-    loadOptions: function(select, url, options)
-    {
-        options = options || {};
-        Object.extend(options, typeof url == 'string' ? {'url': url} : url);
-
-        options = Object.extend({
-            itemsProperty: 'items', 
-            onComplete: Prototype.emptyFunction
-        }, options);
-        var $options = options;
-
-        var $select = $(select);
-        $select.disabled = true;
-        new Ajax.Request($options.url, {
-            method: 'get',
-            transport: 'xhr',
-            onComplete: function(t, json) {
-                json = json || t.responseJS || t.responseText.evalJSON();
-
-                if (options.itemsProperty!='')
-                    values = json[$options.itemsProperty];
-
-                $select.setOptions(values, $options);
-
-                if ($select.childElements().length == 0) {
-                    $select.disabled = true;
-                } else {
-                    $select.disabled = false;
-                }
-
-                $options.onComplete();
-            }
-        });
-        return select;
-    }
-};
-
 Element.addMethods("FORM", {
     deserializeElements: Backend.Prototype.Form.deserializeElements,
     deserialize: Backend.Prototype.Form.deserialize
@@ -354,5 +322,7 @@ Element.addMethods("SELECT", {
 
 Element.addMethods({
     moveUp: Backend.Prototype.Element.moveUp,
-    moveDown: Backend.Prototype.Element.moveDown
+    moveDown: Backend.Prototype.Element.moveDown,
+    ifExists: Backend.Prototype.Element.ifExists,
+    evaluate: Backend.Prototype.Element.evaluate
 });
