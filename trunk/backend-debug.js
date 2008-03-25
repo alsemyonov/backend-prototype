@@ -23,7 +23,7 @@ var Backend = {
     }).each( function(s) {
       var path = s.src.replace(/backend-debug\.js(\?.*)?$/,'');
       var includes = s.src.match(/\?.*load=([a-z,]*)/);
-      $w('prototype observable configurable ajax component datasource behaviour').each(
+      (includes ? includes[1] : 'prototype,observable,configurable,ajax,component,datasource,behavior').split(',').each(
        function(include) { Backend.require(path+'/src/'+include+'.js') });
     });
   }

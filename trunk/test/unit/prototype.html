@@ -1,0 +1,66 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Prototype Unit test file</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <script src="../../ext/prototype.js" type="text/javascript"></script>
+  <script src="../lib/unittest.js" type="text/javascript"></script>
+  <script src="../../backend-debug.js?load=prototype" type="text/javascript"></script>
+  <link rel="stylesheet" href="../test.css" type="text/css" />
+  <style type="text/css" media="screen">
+  /* <![CDATA[ */
+    #testcss1 { font-size:11px; color: #f00; }
+    #testcss2 { font-size:12px; color: #0f0; display: none; }
+  /* ]]> */
+  </style>
+</head>
+<body>
+<h1>Backend Unit test file</h1>
+<p>
+  Test of utility functions in prototype.js
+</p>
+
+<!-- Log output -->
+<div id="testlog"> </div>
+
+<!-- Test DIV's -->
+<div id="ifExists" style="display: none;"></div>
+
+<div>
+<div id="up" style="display: none;"></div>
+<div id="down" style="display: none;"></div>
+</div>
+
+<div id="container" style="display: none;">
+<div id="template#{id}"><input type="text" name="txt#{id}"/></div>
+</div>
+
+<!-- Tests follow -->
+<script type="text/javascript" language="javascript" charset="utf-8">
+// <![CDATA[
+  new Test.Unit.Runner({
+    testIfExists: function(){with(this) {
+        assert(Element.ifExists('ifExists', function() { }));
+        assertNull(Element.ifExists('nonExistent', function() { }));
+    }},
+    testMoveUp: function(){with(this) {
+        $('up').moveDown();
+        assert($('down').next() == $('up'));
+        assertNothingRaised(function() { $('up').moveDown() });
+    }},
+    testMoveDown: function(){with(this) {
+        $('up').moveUp();
+        ($('up').next() == $('down'));
+        assertNothingRaised(function() { $('up').moveUp() });
+    }},
+    // @todo IE
+    testEvaluate: function(){with(this) {
+        var s = '<div id="template3"><input name="txt3" type="text"></div>';
+        assert($('container').evaluate({id: 3}).strip().toLowerCase() == s.strip().toLowerCase());
+    }}
+  });
+// ]]>
+</script>
+</body>
+</html>

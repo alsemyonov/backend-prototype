@@ -1,3 +1,6 @@
+// !!
+Backend = {};
+
 /**
  * Observable mix-in.
  * @static
