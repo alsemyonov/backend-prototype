@@ -23,7 +23,7 @@ Backend.Component = {
    * @param {string} type Type id
    */
   register: function(klass, type) {
-      if (Backend.Component.types.isset(type)) {
+      if (Backend.Component.types.values().member(type)) {
           throw type+" already registered";
       }
       Backend.Component.types.set(type, klass);        
