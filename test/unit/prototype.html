@@ -33,13 +33,13 @@
 </div>
 
 <div id="container" style="display: none;">
-<div id="template#{id}"><input type="text" name="txt#{id}"/></div>
+<div id="template__id__"><input type="text" name="txt__id__"/></div>
 </div>
 
 <form id="testForm" style="display: none;">
     <input type="text" name="f1" id="f1"></input>
     <input type="checkbox" name="f2" value="2" id="f2"></input>
-    <select name="f3" id="f3"><option value="1"></option><option value="2"></option></select>
+    <select name="f3" id="f3"><option value="1"></option><option value="2"></option><option value="3"></option></select>
     <textarea name="f4" id="f4"></textarea>
     <input type="text" name="f5[]" id="f5_1"></input>
     <input type="text" name="f5[]" id="f5_2"></input>
@@ -51,6 +51,10 @@
     <input type="text" name="f8[one][two]" id="f8_one_two"></input>
     <input type="text" name="f9[][one]" id="f9_1_one"></input> <!--?-->
     <input type="text" name="f9[][two]" id="f9_2_two"></input>
+    <input type="radio" name="f10" id="f10_1" value="1"/>
+    <input type="radio" name="f10" id="f10_2" value="2"/>
+    <input type="radio" name="f10" id="f10_3" value="3"/>
+    <!--select name="f10" id="f10" multiple="yes"><option value="1"></option><option value="2"></option></select-->
 </form>
 
 <!-- Tests follow -->
@@ -88,17 +92,56 @@
             f6: {one: 7, two: 8}, 
             f7: {one: [9,10]}, 
             f8: {one: {one: 11, two: 12}}, 
-            f9: [{one: 13, two: 13}]
+            f9: [{one: 13, two: 14}, {one: 15, two: 16}],
+            f10: 3
         };
 
         $('testForm').deserialize(testData);
 
         assert($('f1').value == 1);
-        assert($('f2').value == true);
+        assert($('f2').checked == true);
         assert($('f3').value == 3);
         assert($('f4').value == 4);
         assert($('f5_1').value == 5);
         assert($('f5_2').value == 6);
+        assert($('f6_one').value == 7);
+        assert($('f6_two').value == 8);
+        assert($('f7_one_1').value == 9);
+        assert($('f7_one_2').value == 10);
+        assert($('f8_one_one').value == 11);
+        assert($('f8_one_two').value == 12);
+        assert($('f9_1_one').value == 13);
+        assert($('f9_2_two').value == 16);
+        assert($('f10_3').checked == true);
+    }},
+
+    testSelect: function() {with(this) {
+        var options = [{id: 1, name: 'xxx'}, {id: 2, name: 'yyy', dumb: 'ccc'}, {id: 3, _name: 'xxx'}, {id: 4, name: 'fff'}];
+        var before = [{id: '', name: 'S'}];
+        var after = [{id: '', name: 'A'}];
+        var testS = '<option value="">S</option><option value="1">xxx</option><option value="2">yyy</option><option value="3"></option><option value="4">fff</option><option value="">A</option>';
+
+        var s = Backend.Prototype.Select.formatOptions(options, {
+            valueMember: 'id',
+            displayMember: 'name',
+            before: before,
+            after: after          
+        });
+
+        assert(testS.toLowerCase() == s.toLowerCase());
+    }},
+
+    testSelectWrongOptions: function() {with(this) {
+        var options = [{id: 1, name: '1'}];
+
+        var s = Backend.Prototype.Select.formatOptions(options, {
+            valueMember: 'id',
+            displayMember: 'name',
+            before: undefined,
+            after: 'shit'
+        });
+
+        assert(s.toLowerCase() == '<option value="1">1</option>');
     }}
   });
 // ]]>

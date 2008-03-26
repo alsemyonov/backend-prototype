@@ -1,4 +1,5 @@
-/* 43343*/ 
+/* 43343*/
+/** Конаретно продумать с disabled */
 Backend.Prototype = {};
 
 /**
@@ -45,10 +46,11 @@ Backend.Prototype.Element = {
   
   /**
    * Creates element usesing another element innerHtml as template.
+   * Replace #{id} constructions with __id__.
    */
   evaluate: function(el, attrs) {
-    var elTpl = $(el).innerHTML;
-    var tpl = new Template(elTpl);
+    var elTpl = $(el).innerHTML.replace(/__([\w_]+)__/g, '#{$1}');
+    var tpl = new Template(elTpl);    
     return tpl.evaluate(attrs);
   }
 };
@@ -56,111 +58,78 @@ Backend.Prototype.Element = {
 /**
  * <FORM> extensions.
  * @class Backend.Prototype.Form
+ * @todo Move setValue for multiple select to <select> extensions.
  */
 Backend.Prototype.Form = {
-    deserializeElements: function(form, elements, values) {
-        parseName = function(name)
-        {
-            var brPos = name.indexOf('[');
-            var parts = new Array();
-
-            if (brPos == -1) {
-                parts.push(name);
+  /**
+   * Sets values of elements from object.
+   * See test for example.
+   */
+  deserializeElements: function(form, elements, values) {
+    if (Object.isHash(values)) values = values.toObject();
+    
+    // Cache is used to search correct radio button value.
+    var cached = $H();
+    
+    elements.each(function(el) {
+      var name = el.name || el.id;
+      if (Object.isUndefined(name)) return;
+      
+      if (!cached.keys().member(name)) {
+        var bracketPos = name.indexOf('[');
+        name = bracketPos == -1 ? '['+name+']' : '['+name.substring(0, bracketPos)+']'+name.substring(bracketPos);
+        name = name.replace('[]', '.shift()')
+        name = name.replace(/\[([\w\d]+)\]/g, '["$1"]');
+      
+        try {
+          value = eval('values'+name);
+        }
+        catch(e) {
+          return;
+        }
+      } else {
+        value = cached.get(name);
+      }
+      
+      tagName = el.tagName.toUpperCase();
+      if (el.tagName == 'SELECT')  {
+        if (el.multiple == false) {
+          el.value = value;
+        } else {
+          if (!Object.isArray(value)) return;
+          el.select('option').each(function(o) {
+            if (value.member(o.value)) {
+              o.selected = true;
+            }
+          });
+        }
+      }
+      if (el.tagName == 'INPUT') {
+        switch(el.type.toUpperCase()) {
+          case 'TEXT':
+            el.value = value;
+          break;
+          case 'CHECKBOX':
+            if (el.value == value) el.checked = true;
+          break;
+          case 'RADIO':
+            if (el.value == value) {
+              el.checked = true;
             } else {
-                parts.push(name.substring(0, brPos));
-                name.scan(/\[(\w*)\]/, function(e) { parts.push(e[1]); } );
+              cached.set(el.name, value);
             }
-            return parts;
-        };
+          break;
+        }
+      }
+    }, this);
+  },
 
-        // TOO COMPLEX. MAY IT BE REWROTE?
-        getValue = function(values, parts) {
-            var part = parts[0];
-            var value = undefined;
-
-            values = $H(values);
-
-            if (part != '') {
-                value = values.get(part);
-            } else {
-                value = values.get(0);
-            }
-
-            if (value != undefined) {
-                if (parts.length != 1) {
-                    updates = getValue(value, parts.slice(1));
-                    values.set(part, updates[1]);
-                    return [updates[0], values];
-                }
-
-                if (part != '') {
-                    values.unset(part);
-                } else {
-                    values = $A($H(values).values()).slice(1);
-                }
-
-                return [value, values];
-            }
-
-            return [undefined, values];
-        };
-
-        values = $H(values);
-        radiosCache = $H();
-
-        elements.each(
-            function(e) {
-                var nameParts = parseName(e.name);
-
-                function setCheckbox(e, value) {
-                    
-                }
-
-                if ((e.tagName == 'SELECT') && (e.multiple == true)) {
-                    //TODO !!!!!!! REWRITE.
-                } else if ((e.tagName == 'INPUT') && (e.className.indexOf('checkbox') != -1)) {
-                    r = getValue(values, nameParts);
-                    value = r[0];
-                    values = r[1];                    
-                    
-                    if (e.type == 'checkbox') {
-                        e.value = 1;
-                    } else {
-                        $id = e.className.split(' ')[1];
-                        e.value = 0;
-                        ch = $($id);
-                        if (ch != undefined) {
-                            ch.checked = value == 1;
-                            ch.value = 1;
-                        }
-                    }
-                } if (e.type == 'radio') {
-                    if (radiosCache.get(e.name) == undefined) {
-                        r = getValue(values, nameParts);
-                        value = r[0];
-                        values = r[1];
-                        radiosCache.set(e.name, value);
-                    } else {
-                        value = radiosCache.get(e.name);                        
-                    }
-                    if (e.value == value) e.checked = true;
-                } else {
-                    r = getValue(values, nameParts);
-                    value = r[0];
-                    values = r[1];
-                    
-                    if (value != undefined)
-                        e.value = value;
-                }
-
-                e.fire('onChange');
-            }
-        );
-    },
-
-    deserialize: function(form, values) {
-        form.deserializeElements(form.getElements(), values);
-    }
+  /**
+   * Deserealizes form elements from object.
+   */
+  deserialize: function(form, values) {
+    form.deserializeElements(form.getElements(), values);
+  }
 };
 
 /**
@@ -168,68 +137,85 @@ Backend.Prototype.Form = {
  * @class Backend.Prototype.Select
  */
 Backend.Prototype.Select = {
+  /**
+   * Formats array of objects as <option> list.
+   */
   formatOptions: function(items, options) {
     options = Object.extend({
       valueMember: 'id', 
       displayMember: 'name',
-      before: '',
-      after: ''
+      before: $A(),
+      after: $A()
     }, options);
-    var $options = $H(options);
 
-    var newOptions = $options.get('before');
+    if (!Object.isArray(options.before)) options.before = $A();
+    if (!Object.isArray(options.after)) options.after = $A();
+   
+    items = options.before.concat(items, options.after);
+    var newOptions = '';
+
     if (items && items.length > 0) {
         items.each(function(option) {
         option = $H(option);
-        newOptions += '<option value="' + option.get($options.get('valueMember')) + '">' + option.get($options.get('displayMember'))+ '</option>';
+        var value = option.get(options['valueMember']) || '';
+        var display = option.get(options['displayMember']) || '';
+        
+        newOptions += '<option value="' + value + '">' + display + '</option>';
       });
     }
-    newOptions += $options.get('after');
     return newOptions;
   },
 
+  /**
+   * Sets options for select.
+   */
   setOptions: function(select, items, options)
   {
-    newOptions = Backend.Prototype.Select.formatOptions(items, options);
+    var newOptions = Backend.Prototype.Select.formatOptions(items, options);
     $select = $(select);
     $select.update(newOptions);
   },
 
+  /**
+   * Loads options for select from url through ajax request.
+   */
   loadOptions: function(select, url, options)
   {
     options = options || {};
     Object.extend(options, typeof url == 'string' ? {'url': url} : url);
 
     options = Object.extend({
-    itemsProperty: 'items', 
-    onComplete: Prototype.emptyFunction
+      itemsProperty: 'items',
+      shoulDisable: true,
+      disableCount: null,
+      before: $A(),
+      after: $A(),
+      onComplete: Prototype.emptyFunction
     }, options);
-    var $options = options;
 
-    var $select = $(select);
-    $select.disabled = true;
-    new Ajax.Request($options.url, {
+    if (options.shouldDisable)
+      select.disabled = true;
+      
+    new Ajax.Request(options.url, {
       method: 'get',
-      transport: 'xhr',
-      onComplete: function(t, json) {
+      onComplete: options.onComplete.wrap(function(old, t, json) {
       json = json || t.responseJS || t.responseText.evalJSON();
 
       if (options.itemsProperty!='')
-        values = json[$options.itemsProperty];
+        values = json[options.itemsProperty];
+        select.setOptions(values, options);
 
-        $select.setOptions(values, $options);
-
-        if ($select.childElements().length == 0) {
-          $select.disabled = true;
+        var disableCount = options.disableCount ? options.disableCount : options.before.length + options.after.length;
+        if (select.childElements().length == disableCount) {
+          select.disabled = true;
         } else {
-          $select.disabled = false;
+          select.disabled = false;
         }
-
-        $options.onComplete();
-      }
+        old(t, json);
+      })
     });
     return select;
-  }
+  } 
 };
 
 Backend.Prototype.Table = {
