@@ -54,75 +54,9 @@ Backend.Prototype.Element = {
 };
 
 /**
- * <SELECT> tag extensions.
- * @class Backend.Prototype.Select
+ * <FORM> extensions.
+ * @class Backend.Prototype.Form
  */
-Backend.Prototype.Select = {
-  formatOptions: function(items, options) {
-    options = Object.extend({
-      valueMember: 'id', 
-      displayMember: 'name',
-      before: '',
-      after: ''
-    }, options);
-    var $options = $H(options);
-
-    var newOptions = $options.get('before');
-    if (items && items.length > 0) {
-        items.each(function(option) {
-        option = $H(option);
-        newOptions += '<option value="' + option.get($options.get('valueMember')) + '">' + option.get($options.get('displayMember'))+ '</option>';
-      });
-    }
-    newOptions += $options.get('after');
-    return newOptions;
-  },
-
-  setOptions: function(select, items, options)
-  {
-    newOptions = Backend.Prototype.Select.formatOptions(items, options);
-    $select = $(select);
-    $select.update(newOptions);
-  },
-
-  loadOptions: function(select, url, options)
-  {
-    options = options || {};
-    Object.extend(options, typeof url == 'string' ? {'url': url} : url);
-
-    options = Object.extend({
-    itemsProperty: 'items', 
-    onComplete: Prototype.emptyFunction
-    }, options);
-    var $options = options;
-
-    var $select = $(select);
-    $select.disabled = true;
-    new Ajax.Request($options.url, {
-      method: 'get',
-      transport: 'xhr',
-      onComplete: function(t, json) {
-      json = json || t.responseJS || t.responseText.evalJSON();
-
-      if (options.itemsProperty!='')
-        values = json[$options.itemsProperty];
-
-        $select.setOptions(values, $options);
-
-        if ($select.childElements().length == 0) {
-          $select.disabled = true;
-        } else {
-          $select.disabled = false;
-        }
-
-        $options.onComplete();
-      }
-    });
-    return select;
-  }
-};
-
-
 Backend.Prototype.Form = {
     deserializeElements: function(form, elements, values) {
         parseName = function(name)
@@ -227,6 +161,75 @@ Backend.Prototype.Form = {
     deserialize: function(form, values) {
         form.deserializeElements(form.getElements(), values);
     }
+};
+
+/**
+ * <SELECT> tag extensions.
+ * @class Backend.Prototype.Select
+ */
+Backend.Prototype.Select = {
+  formatOptions: function(items, options) {
+    options = Object.extend({
+      valueMember: 'id', 
+      displayMember: 'name',
+      before: '',
+      after: ''
+    }, options);
+    var $options = $H(options);
+
+    var newOptions = $options.get('before');
+    if (items && items.length > 0) {
+        items.each(function(option) {
+        option = $H(option);
+        newOptions += '<option value="' + option.get($options.get('valueMember')) + '">' + option.get($options.get('displayMember'))+ '</option>';
+      });
+    }
+    newOptions += $options.get('after');
+    return newOptions;
+  },
+
+  setOptions: function(select, items, options)
+  {
+    newOptions = Backend.Prototype.Select.formatOptions(items, options);
+    $select = $(select);
+    $select.update(newOptions);
+  },
+
+  loadOptions: function(select, url, options)
+  {
+    options = options || {};
+    Object.extend(options, typeof url == 'string' ? {'url': url} : url);
+
+    options = Object.extend({
+    itemsProperty: 'items', 
+    onComplete: Prototype.emptyFunction
+    }, options);
+    var $options = options;
+
+    var $select = $(select);
+    $select.disabled = true;
+    new Ajax.Request($options.url, {
+      method: 'get',
+      transport: 'xhr',
+      onComplete: function(t, json) {
+      json = json || t.responseJS || t.responseText.evalJSON();
+
+      if (options.itemsProperty!='')
+        values = json[$options.itemsProperty];
+
+        $select.setOptions(values, $options);
+
+        if ($select.childElements().length == 0) {
+          $select.disabled = true;
+        } else {
+          $select.disabled = false;
+        }
+
+        $options.onComplete();
+      }
+    });
+    return select;
+  }
 };
 
 Backend.Prototype.Table = {
