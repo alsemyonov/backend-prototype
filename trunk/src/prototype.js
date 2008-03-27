@@ -1,3 +1,5 @@
+Backend = {};
+
 /* 43343*/
 /** Конаретно продумать с disabled */
 Backend.Prototype = {};
@@ -36,12 +38,12 @@ Backend.Prototype.Element = {
   /**
    * Calls method if element exists.
    */
-  ifExists: function(el, f) {
+  when: function(el, fYes, fNo) {
     if ($(el)) {
-      f();
-      return true;
+      return fYes($(el)) || true;
+    } else {
+      return typeof fNo == 'function' ? fNo() : false;
     }
-    return null;
   },
   
   /**
@@ -104,6 +106,11 @@ Backend.Prototype.Form = {
           });
         }
       }
+      
+      if (el.tagName == 'TEXTAREA') {
+        el.value = value;
+      }
+      
       if (el.tagName == 'INPUT') {
         switch(el.type.toUpperCase()) {
           case 'TEXT':
@@ -193,12 +200,13 @@ Backend.Prototype.Select = {
       onComplete: Prototype.emptyFunction
     }, options);
 
-    if (options.shouldDisable)
+    if (options.sho)
       select.disabled = true;
       
     new Ajax.Request(options.url, {
       method: 'get',
       onComplete: options.onComplete.wrap(function(old, t, json) {
+
       json = json || t.responseJS || t.responseText.evalJSON();
 
       if (options.itemsProperty!='')
@@ -214,6 +222,7 @@ Backend.Prototype.Select = {
         old(t, json);
       })
     });
+    select.fire('change');
     return select;
   } 
 };
@@ -312,6 +321,6 @@ Element.addMethods("SELECT", {
 Element.addMethods({
     moveUp: Backend.Prototype.Element.moveUp,
     moveDown: Backend.Prototype.Element.moveDown,
-    ifExists: Backend.Prototype.Element.ifExists,
+    when: Backend.Prototype.Element.when,
     evaluate: Backend.Prototype.Element.evaluate
 });

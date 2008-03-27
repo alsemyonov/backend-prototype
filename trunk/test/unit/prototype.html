@@ -61,9 +61,10 @@
 <script type="text/javascript" language="javascript" charset="utf-8">
 // <![CDATA[
   new Test.Unit.Runner({
+    // @todo ifExists ifNo
     testIfExists: function(){with(this) {
-        assert(Element.ifExists('ifExists', function() { }));
-        assertNull(Element.ifExists('nonExistent', function() { }));
+        assert(Element.when('ifExists', function() { return true; }));
+        assert(!Element.when('nonExistent', function() { }));
     }},
     testMoveUp: function(){with(this) {
         $('up').moveDown();
