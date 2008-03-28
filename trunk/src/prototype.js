@@ -72,7 +72,7 @@ Backend.Prototype.Form = {
     
     // Cache is used to search correct radio button value.
     var cached = $H();
-    
+
     elements.each(function(el) {
       var name = el.name || el.id;
       if (Object.isUndefined(name)) return;
@@ -81,8 +81,8 @@ Backend.Prototype.Form = {
         var bracketPos = name.indexOf('[');
         name = bracketPos == -1 ? '['+name+']' : '['+name.substring(0, bracketPos)+']'+name.substring(bracketPos);
         name = name.replace('[]', '.shift()')
-        name = name.replace(/\[([\w\d]+)\]/g, '["$1"]');
-      
+        name = name.replace(/\[([\w\d]+)\]/g, '["$1"]');     
+
         try {
           value = eval('values'+name);
         }
@@ -93,9 +93,13 @@ Backend.Prototype.Form = {
         value = cached.get(name);
       }
       
+      if (Object.isUndefined(value)) {
+        return;
+      }
+
       tagName = el.tagName.toUpperCase();
       if (el.tagName == 'SELECT')  {
-        if (el.multiple == false) {
+        if (el.multiple == false) {          
           el.value = value;
         } else {
           if (!Object.isArray(value)) return;
@@ -227,7 +231,7 @@ Backend.Prototype.Select = {
   } 
 };
 
-Backend.Prototype.Table = {
+/*Backend.Prototype.Table = {
     formatters: {
         date: function(inFormat, outFormat, value, id, row) {
             d = Date.parseDate(value, inFormat);
@@ -291,17 +295,18 @@ Backend.Prototype.Table = {
         container.update(result);
     }
 };
-
+*/
+    
 Element.addMethods("FORM", {
     deserializeElements: Backend.Prototype.Form.deserializeElements,
     deserialize: Backend.Prototype.Form.deserialize
 });
 
-Element.addMethods("TABLE", {
+/*Element.addMethods("TABLE", {
     fill: Backend.Prototype.Table.load
-});
+});*/
 
-Element.addMethods("TBODY", {
+/*Element.addMethods("TBODY", {
     fill: Backend.Prototype.Table.fill
 });
 
@@ -311,7 +316,7 @@ Element.addMethods("THEAD", {
 
 Element.addMethods("TFOOT", {
     load: Backend.Prototype.Table.load
-});
+});*/
 
 Element.addMethods("SELECT", {
     setOptions: Backend.Prototype.Select.setOptions,
