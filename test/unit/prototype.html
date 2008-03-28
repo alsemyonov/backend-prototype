@@ -54,6 +54,7 @@
     <input type="radio" name="f10" id="f10_1" value="1"/>
     <input type="radio" name="f10" id="f10_2" value="2"/>
     <input type="radio" name="f10" id="f10_3" value="3"/>
+    <input type="radio" name="_undef" id="_undef" value="_intact"/>
     <!--select name="f10" id="f10" multiple="yes"><option value="1"></option><option value="2"></option></select-->
 </form>
 
@@ -114,6 +115,7 @@
         assert($('f9_1_one').value == 13);
         assert($('f9_2_two').value == 16);
         assert($('f10_3').checked == true);
+        assert($('_undef').value == '_intact');
     }},
 
     testSelect: function() {with(this) {

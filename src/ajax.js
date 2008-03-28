@@ -52,7 +52,6 @@ Backend.Ajax = {
         Object.extend(divElm.style, {
             position: 'absolute', top: 0, marginLeft: '-10000px'
         });
-
         if (navigator.userAgent.indexOf('MSIE') > 0 && navigator.userAgent.indexOf('Opera') == -1) {// switch to the crappy solution for IE
             divElm.innerHTML = '<iframe name=\"frame_' + id + '\" id=\"frame_' + id + '\" src=\"about:blank\" onload=\"setTimeout(function(){Backend.Ajax.iframeRequests[' + id + ']._onload()},20);"></iframe>';
         } else {
@@ -243,8 +242,7 @@ Backend.Ajax.Request = Class.create(Ajax.Request, {
         catch (e) {
             this.dispatchException(e);
         }
-    },
-
+    }
 });
 
 Backend.Ajax._Request = Ajax.Request.prototype;
