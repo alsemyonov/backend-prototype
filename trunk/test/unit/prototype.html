@@ -39,7 +39,7 @@
 <form id="testForm" style="display: none;">
     <input type="text" name="f1" id="f1"></input>
     <input type="checkbox" name="f2" value="2" id="f2"></input>
-    <select name="f3" id="f3"><option value="1"></option><option value="2"></option><option value="3"></option></select>
+    <select name="f3" id="f3"><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
     <textarea name="f4" id="f4"></textarea>
     <input type="text" name="f5[]" id="f5_1"></input>
     <input type="text" name="f5[]" id="f5_2"></input>
@@ -54,8 +54,16 @@
     <input type="radio" name="f10" id="f10_1" value="1"/>
     <input type="radio" name="f10" id="f10_2" value="2"/>
     <input type="radio" name="f10" id="f10_3" value="3"/>
-    <input type="radio" name="_undef" id="_undef" value="_intact"/>
+    <input type="text" name="_undef" id="_undef" value="_intact"/>
     <!--select name="f10" id="f10" multiple="yes"><option value="1"></option><option value="2"></option></select-->
+</form>
+
+<form id="testForm2" style="display: none;">
+    <input type="checkbox" name="cb1" id="cb1" value="" checked="yes"/>
+    <input type="checkbox" name="cb2" id="cb2" value=""/>
+    <input type="checkbox" name="cb3" id="cb3" value="" checked="yes"/>
+    <input type="checkbox" name="cb4" id="cb4" value="zzz" checked="yes"/>
+    <input type="checkbox" name="cb5" id="cb5" value="yyy"/>
 </form>
 
 <!-- Tests follow -->
@@ -95,7 +103,7 @@
             f7: {one: [9,10]}, 
             f8: {one: {one: 11, two: 12}}, 
             f9: [{one: 13, two: 14}, {one: 15, two: 16}],
-            f10: 3
+            f10: 2
         };
 
         $('testForm').deserialize(testData);
@@ -114,9 +122,35 @@
         assert($('f8_one_two').value == 12);
         assert($('f9_1_one').value == 13);
         assert($('f9_2_two').value == 16);
-        assert($('f10_3').checked == true);
+        assert($('f10_2').checked == true);
         assert($('_undef').value == '_intact');
     }},
+
+    testFlagsGetValue: function() {with(this) {
+        var f = $('testForm2').serialize(true);
+
+        assert(f.cb1 == true);
+        assert(f.cb2 == false);
+        assert(f.cb3 == true);
+        assert(f.cb4 == 'zzz');
+        assert(f.cb5 == undefined);
+    }},
+
+    testFlagsSetValue: function(){ with(this) {
+        $('cb1').setValue(false);
+        $('cb2').setValue(true);
+        $('cb3').setValue('shit');
+        $('cb4').setValue('ttt');
+        $('cb5').setValue(true);
+
+        assert($('cb1').getValue() == false);
+        assert($('cb2').getValue() == true);
+        assert($('cb3').getValue() == true);
+        assert($('cb4').getValue() == null);
+        assert($('cb5').getValue() == null);
+
+        // @todo
+    }}, 
 
     testSelect: function() {with(this) {
         var options = [{id: 1, name: 'xxx'}, {id: 2, name: 'yyy', dumb: 'ccc'}, {id: 3, _name: 'xxx'}, {id: 4, name: 'fff'}];

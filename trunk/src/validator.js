@@ -1,5 +1,7 @@
 /**
  * @todo config с классами.
+ * Client-side validator class.
+ * @class Backend.Validator
  */
 Backend.Validator = Class.create({
     initialize: function(rules, immediate) {
