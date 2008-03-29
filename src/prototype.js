@@ -1,7 +1,6 @@
-Backend = {};
+if (Backend == undefined) Backend = {};
 
-/* 43343*/
-/** Конаретно продумать с disabled */
+
 Backend.Prototype = {};
 
 /**
@@ -13,12 +12,15 @@ Backend.Prototype.Element = {
    * Moves element down (after next sibling).
    * @todo steps
    */
-  moveDown: function (el) {
+  moveDown: function (el, index) {
+    index = index || 1;
     var row = $(el);
-    var nextRow = row.next();
-    if (nextRow != null) {
-      row.parentNode.insertBefore(nextRow.cloneNode(true), row);
-      nextRow.remove();
+    if (!Object.isUndefined(row)) {
+      var nextRow = row.next();
+      if (nextRow != null) {
+        row.parentNode.insertBefore(nextRow.cloneNode(true), row);
+        nextRow.remove();
+      }
     }
   },
   
@@ -26,12 +28,15 @@ Backend.Prototype.Element = {
    * Moves element up (before previous sibling).
    * @todo steps
    */
-  moveUp: function (el) {
+  moveUp: function (el, index) {
+    index = index || 1;
     var row = $(el);
-    var prevRow = row.previous();
-    if (prevRow != null) {
-      prevRow.parentNode.insertBefore(row.cloneNode(true), prevRow);
-      row.remove();
+    if (!Object.isUndefined(row)) {
+      var prevRow = row.previous();
+      if (prevRow != null) {
+        prevRow.parentNode.insertBefore(row.cloneNode(true), prevRow);
+        row.remove();
+      }
     }
   },
   
@@ -64,7 +69,7 @@ Backend.Prototype.Element = {
  */
 Backend.Prototype.Form = {
   /**
-   * Sets values of elements from object.
+   * Sets form values from object.
    * See test for example.
    */
   deserializeElements: function(form, elements, values) {
@@ -97,40 +102,18 @@ Backend.Prototype.Form = {
         return;
       }
 
-      tagName = el.tagName.toUpperCase();
-      if (el.tagName == 'SELECT')  {
-        if (el.multiple == false) {          
-          el.value = value;
+      if (el.tagName.toUpperCase() == 'INPUT') {
+        if (el.type.toUpperCase() == 'RADIO') {
+          if (el.value == value) {
+            el.checked = true;
+          } else {
+            cached.set(el.name, value);
+          }
         } else {
-          if (!Object.isArray(value)) return;
-          el.select('option').each(function(o) {
-            if (value.member(o.value)) {
-              o.selected = true;
-            }
-          });
+          el.setValue(value);
         }
-      }
-      
-      if (el.tagName == 'TEXTAREA') {
-        el.value = value;
-      }
-      
-      if (el.tagName == 'INPUT') {
-        switch(el.type.toUpperCase()) {
-          case 'TEXT':
-            el.value = value;
-          break;
-          case 'CHECKBOX':
-            if (el.value == value) el.checked = true;
-          break;
-          case 'RADIO':
-            if (el.value == value) {
-              el.checked = true;
-            } else {
-              cached.set(el.name, value);
-            }
-          break;
-        }
+      } else {
+        el.setValue(value);
       }
     }, this);
   },
@@ -140,8 +123,29 @@ Backend.Prototype.Form = {
    */
   deserialize: function(form, values) {
     form.deserializeElements(form.getElements(), values);
-  }
+  },
+
+  
 };
+
+/**
+ * Custom checkbox serializer. 
+ */
+Form.Element.Serializers.inputSelector = function(element, value) {
+  if (Object.isUndefined(value)) {
+    if (element.value == "") {
+      return element.checked;
+    } else {
+      return element.checked ? element.value : null;
+    }
+  } else {
+    if (element.value == "") {
+      element.checked = !!value;
+    } else {
+      element.checked = element.value == value;
+    }
+  }
+}
 
 /**
  * <SELECT> tag extensions.
@@ -296,11 +300,6 @@ Backend.Prototype.Select = {
     }
 };
 */
-    
-Element.addMethods("FORM", {
-    deserializeElements: Backend.Prototype.Form.deserializeElements,
-    deserialize: Backend.Prototype.Form.deserialize
-});
 
 /*Element.addMethods("TABLE", {
     fill: Backend.Prototype.Table.load
@@ -317,6 +316,11 @@ Element.addMethods("THEAD", {
 Element.addMethods("TFOOT", {
     load: Backend.Prototype.Table.load
 });*/
+    
+Element.addMethods("FORM", {
+    deserializeElements: Backend.Prototype.Form.deserializeElements,
+    deserialize: Backend.Prototype.Form.deserialize
+});
 
 Element.addMethods("SELECT", {
     setOptions: Backend.Prototype.Select.setOptions,
