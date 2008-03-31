@@ -70,6 +70,16 @@
 <script type="text/javascript" language="javascript" charset="utf-8">
 // <![CDATA[
   new Test.Unit.Runner({
+    testBuild: function() {with(this) {
+        assert($B('b') == '<b></b>');
+        assert($B('b', 'test') == '<b>test</b>');
+        assert($B('div', {style: 'display: none;'}) == '<div style="display: none;"></div>');
+        assert($B('div', {'class': 'x'}, 'y') == '<div class="x">y</div>');
+        assert($B('div', {'class': 'x'}, [$B('div')]) == '<div class="x"><div></div></div>');
+        assert($B('div', {'class': 'x'}, [$B('div')], 'y') == '<div class="x">y<div></div></div>');
+        assert($B('div', [$B('div')], 'y') == '<div>y<div></div></div>');
+    }},
+
     // @todo ifExists ifNo
     testIfExists: function(){with(this) {
         assert(Element.when('ifExists', function() { return true; }));
@@ -174,8 +184,7 @@
         var s = Backend.Prototype.Select.formatOptions(options, {
             valueMember: 'id',
             displayMember: 'name',
-            before: undefined,
-            after: 'shit'
+            before: null
         });
 
         assert(s.toLowerCase() == '<option value="1">1</option>');
