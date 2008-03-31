@@ -34,26 +34,26 @@ Backend.Validator = Class.create({
 //            $(field).stopObserving(this.
         }
     },
-    showMessage: function(field, rule) {
+    showError: function(field, rule) {
         if (Object.isFunction(rule)) return;
         var advId = 'advice-'+field+'-'+rule;
         if ($(advId) != null)
             $(advId).show();
     },        
-    hideMessage: function(field, rule) {
+    hideError: function(field, rule) {
         if (Object.isFunction(rule)) return;
         var advId = 'advice-'+field+'-'+rule;
         if ($(advId) != null)
             $(advId).hide();
     },
-    hideAllMessages: function() {
+    hideAllErrors: function() {
         $$('.validation-advice').invoke('hide');
     },
-    showAllMessages: function(errors) {
-        this.hideAllMessages();
+    showAllErrors: function(errors) {
+        this.hideAllErrors();
         $H(errors).each(function(f) {
             f.value.each(function(r) {
-                this.showMessage(f.key, r);
+                this.showError(f.key, r);
             }, this);
         }, this);                
     },
@@ -70,17 +70,17 @@ Backend.Validator = Class.create({
             }
             fn(value);
             if (!fn(value)) {
-                this.showMessage(field, rule);
+                this.showError(field, rule);
                 return true;
             } else {
-                this.hideMessage(field, rule);
+                this.hideError(field, rule);
             }
             return false;
         }, this);
         return !Object.isUndefined(valid);
     },    
     validateAll: function() {
-        this.hideAllMessages();
+        this.hideAllErrors();
         var result = false;
         this.rules.each(function(f) {
             result |= this.validate(f.key, f.value);
