@@ -26,7 +26,7 @@
 
 *---------------------------------------------------------------------------*/
 
-if (!window.Backend) var Backend = {};
+//if (!window.Backend) var Backend = {};
 Backend.Ajax = {
     iframeRequests: {},
     reqCount: 0,

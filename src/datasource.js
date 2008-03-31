@@ -1,5 +1,5 @@
-if(Backend.Prototype == undefined)
-  throw("Backend.Data requires including backend's prototype.js library");
+//if(Backend.Prototype == undefined)
+//  throw("Backend.Data requires including backend's prototype.js library");
 
 /** Model (data source) classes */
 Backend.DataSource = {};

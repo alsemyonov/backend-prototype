@@ -1,4 +1,4 @@
-if (Object.isUndefined(window.Backend)) Backend = {};
+/*if (Object.isUndefined(window.Backend))*/ Backend = {};
 Backend.Prototype = {};
 
 /** JsonML builder function. */
@@ -180,13 +180,14 @@ Backend.Prototype.Select = {
     if (!Object.isArray(options.after)) options.after = $A();    
    
     items = options.before.concat(items, options.after);
+
     var toSet = '';
 
     if (items && items.length > 0) {
         items.each(function(option) {
           var value = option[options.valueMember] || '';
           var display = option[options.displayMember] || '';
-        
+
           toSet += '<option value="' + value + '">' + display + '</option>';
       });
     }
@@ -209,8 +210,7 @@ Element.addMethods("FORM", {
 });
 
 Element.addMethods("SELECT", {
-    setOptions: Backend.Prototype.Select.setOptions,
-    loadOptions: Backend.Prototype.Select.loadOptions
+    setOptions: Backend.Prototype.Select.setOptions
 });
 
 Element.addMethods({
