@@ -1,5 +1,6 @@
 /*  Backend Prototype JavaScript enchanser, version 0.0.1
  *  (c) 2007 roTuKa
+ *  (c) 2008, gzigzigzi (caching)
  *--------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------*
@@ -22,13 +23,16 @@
     // another way
     
     $('SomeForm').submitThroughIframe();
-    
+
+1. simulate other verbs
+2. caching (not for files).
 
 *---------------------------------------------------------------------------*/
 
 //if (!window.Backend) var Backend = {};
 Backend.Ajax = {
     iframeRequests: {},
+    cache: $H(),
     reqCount: 0,
     getXmlHttpRequest: Ajax.getTransport,
     /**
@@ -166,7 +170,8 @@ Backend.Ajax.Request = Class.create(Ajax.Request, {
             encoding:     'UTF-8',
             parameters:   '',
             evalJSON:     true,
-            evalJS:       true
+            evalJS:       true,
+            cache:        false
         };
         Object.extend(this.options, options || {});
 
@@ -232,7 +237,17 @@ Backend.Ajax.Request = Class.create(Ajax.Request, {
             } else {
                 this.body = null;
             }
-            this.transport.send(this.body);
+           
+            if (!this.options.cache) {
+                this.transport.send(this.body);
+            } else {
+                if (this.isCached(this)) {
+                    this.transport = this.getCached(this);
+                    this.onStateChange();
+                } else {
+                    this.transport.send(this.body);
+                }
+            }
 
             /* Force Firefox to handle ready state 4 for synchronous requests */
             if (!this.options.asynchronous && this.transport.overrideMimeType)
@@ -242,12 +257,42 @@ Backend.Ajax.Request = Class.create(Ajax.Request, {
         catch (e) {
             this.dispatchException(e);
         }
+    },
+
+    getCacheKey: function(request) {
+        // I should implement more optimal alghoritm.
+        return request.url + Object.toJSON(request.parameters);
+    },
+
+    cache: function(response) {
+        var cacheKey = this.getCacheKey(response.request);
+        Backend.Ajax.cache.set(cacheKey, response);
+    },
+
+    isCached: function(request) {
+        var cacheKey = this.getCacheKey(request);
+        return Backend.Ajax.cache.keys().member(cacheKey);
+    },
+
+    getCached: function(request) {
+        var cacheKey = this.getCacheKey(request);
+        return Backend.Ajax.cache.get(cacheKey);
+    },
+
+    respondToReadyState: function($super, readyState) {
+        $super(readyState);
+        if (this.options.cache) {
+            var state = Ajax.Request.Events[readyState], response = new Ajax.Response(this);
+            if (state == 'Complete') {
+                this.cache(response);
+            }
+        }
     }
 });
 
-Backend.Ajax._Request = Ajax.Request.prototype;
-Ajax.Request.prototype.initialize = Backend.Ajax.Request.prototype.initialize;
-Ajax.Request.prototype.request = Backend.Ajax.Request.prototype.request;
+//Backend.Ajax._Request = Ajax.Request;
+//Ajax.Request.prototype.initialize = Backend.Ajax.Request.prototype.initialize;
+//Ajax.Request.prototype.request = Backend.Ajax.Request.prototype.request;
 
 Backend.Prototype = Backend.Prototype || {};
 Backend.Prototype.Form = Backend.Prototype.Form || {}

@@ -23,6 +23,48 @@ Backend.Component = Class.create({
 Backend.Component.created = $H();
 
 /**
+ * In-place editor.
+ * @class Backend.Component.EditorDecorator
+ */
+Backend.Component.EditorDecorator = Class.create(Backend.Component, {
+  initialize: function($super, id, config) {
+    this.setDefaults({
+      decoration: id+'Decoration',
+      control: id+'Control',
+      container: id+'Container'
+    });
+    $super(id, config);
+  },
+  render: function() {
+    $(this.config.decoration).observe('click', this.switchToControl.bindAsEventListener(this));
+    $(this.config.control).observe('change', this.switchToDecoration.bindAsEventListener(this))
+  },
+  switchToControl: function(e) {
+    e.stop();
+    $(this.config.decoration).hide();
+    $(this.config.control).show();
+  },
+  switchToDecoration: function(e) {
+    $(this.config.decoration).show();
+    var control = $(this.config.control);
+    var value = undefined;
+    
+    if (control.tagName.toLowerCase() == 'select') {
+      if (control.multiple == false) {
+        value = control.options[control.selectedIndex].textContent;
+      }
+    }    
+    if (control.tagName.toLowerCase() == 'input') {
+      if (control.type.toLowerCase() == 'text') {
+        value = update($(this.config.control).getValue());
+      }
+    }
+    $(this.config.container).update(value);
+    control.hide();
+  }    
+});
+
+/**
  * Grid class.
  * @class Backend.Component.Grid
  * @todo Buggy... Renumber events after insert!!!

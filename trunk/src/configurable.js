@@ -1,9 +1,5 @@
-/*  Backend Prototype JavaScript enchanser, version 0.0.1
- *  (c) 2007 gzigzigzi
- *--------------------------------------------------------------------------*/
-
 /*  
- * Configurable behaviour.
+ * @class Backend.Configurable
  *--------------------------------------------------------------------------*/
 Backend.Configurable = {
   setDefaults: function(defaults) {
