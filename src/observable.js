@@ -6,6 +6,7 @@
  * @static
  */
 Backend.Observable = {
+    /** Adds event */
     addEvent: function(listener) {
         this.addEvents([listener]);
     },

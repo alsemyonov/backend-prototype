@@ -140,25 +140,6 @@ Backend.Prototype.Form = {
    */
   deserialize: function(form, values) {
     form.deserializeElements(form.getElements(), values);
-  }, 
-};
-
-/**
- * Custom checkbox serializer. 
- */
-Form.Element.Serializers.inputSelector = function(element, value) {
-  if (Object.isUndefined(value)) {
-    if (element.value == "") {
-      return element.checked;
-    } else {
-      return element.checked ? element.value : null;
-    }
-  } else {
-    if (element.value == "") {
-      element.checked = !!value;
-    } else {
-      element.checked = element.value == value;
-    }
   }
 };
 
@@ -206,7 +187,8 @@ Backend.Prototype.Select = {
    
 Element.addMethods("FORM", {
     deserializeElements: Backend.Prototype.Form.deserializeElements,
-    deserialize: Backend.Prototype.Form.deserialize
+    deserialize: Backend.Prototype.Form.deserialize,
+    createCheckboxHelpers: Backend.Prototype.Form.createCheckboxHelpers
 });
 
 Element.addMethods("SELECT", {

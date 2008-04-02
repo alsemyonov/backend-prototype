@@ -1,2 +1,2 @@
-copy /B observable.js + configurable.js + ajax.js + prototype.js + component.js + behavior.js + datasource.js + validator.js "%TMP%/______backendbuild.js"
+copy /B observable.js + configurable.js + ajax.js + prototype.js + component.js + behavior.js + validator.js "%TMP%/______backendbuild.js"
 java -jar ../ext/yuicompressor-2.3.4.jar %TMP%/______backendbuild.js -o ../backend.js
