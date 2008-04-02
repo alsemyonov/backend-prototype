@@ -290,6 +290,8 @@ Backend.Ajax.Request = Class.create(Ajax.Request, {
     }
 });
 
+$Ajax = function(url, options) { return new Backend.Ajax.Request(url, options); };
+
 //Backend.Ajax._Request = Ajax.Request;
 //Ajax.Request.prototype.initialize = Backend.Ajax.Request.prototype.initialize;
 //Ajax.Request.prototype.request = Backend.Ajax.Request.prototype.request;

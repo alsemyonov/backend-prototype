@@ -4,10 +4,17 @@
  * @class Backend.Validator
  */
 Backend.Validator = Class.create({
-    initialize: function(rules, immediate) {
+    initialize: function(rules, immediate, config) {
         rules = rules || $A();
         this.rules = $H(rules);
-        this.fnCache = {};
+//        this.fnCache = {};
+
+        this.setDefaults({
+            container: window.document,
+            messageClass: 'validation-error',
+            inputClass: 'validation-error'
+        });
+        this.configure(config);
 
         if (immediate) {
             this.rules.each(function(f) {
@@ -47,7 +54,7 @@ Backend.Validator = Class.create({
             $(advId).hide();
     },
     hideAllErrors: function() {
-        $$('.validation-advice').invoke('hide');
+        $(this.config.container).select('.'+this.config.messageClass).invoke('hide');
     },
     showAllErrors: function(errors) {
         this.hideAllErrors();
@@ -87,7 +94,7 @@ Backend.Validator = Class.create({
         }, this);
         return !result;
     }
-});
+}, Backend.Configurable, Backend.Observable);
 
 Backend.Validator.Validators = {
     notblank: function(value) {
