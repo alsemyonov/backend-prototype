@@ -9,8 +9,8 @@ Backend.Prototype.build = function(name, attrs, children, text) {
   if (Object.isString(attrs)) { text = attrs, children = $A(), attrs = $H(); }
   if (Object.isString(children)) { text = children, children = $A(); }
   
-  children = children || $A(), attrs = attrs || $H(), text = text || '';
-   
+  children = Object.isArray(children) ? children : $A(), attrs = attrs || $H(), text = text || '';
+  
   var atxt = $H(attrs).collect(function(pair) { return pair.key+'="'+pair.value+'"'; }).join(' ');
   var ret = '<'+name;
   ret += atxt == '' ? '' : ' ' + atxt;
@@ -144,6 +144,17 @@ Backend.Prototype.Form = {
 };
 
 /**
+ * Event observation functions.
+ */
+Backend.Prototype.EventShortcuts = {
+    click: function(element, fn) {
+        element.observe('click', function(e, fn) {
+            fn(e);
+        }.bindAsEventListener(this, fn));
+    }
+};
+
+/**
  * <SELECT> tag extensions.
  * @class Backend.Prototype.Select
  */
@@ -159,7 +170,7 @@ Backend.Prototype.Select = {
 
     if (!Object.isArray(options.before)) options.before = $A();
     if (!Object.isArray(options.after)) options.after = $A();    
-   
+
     items = options.before.concat(items, options.after);
 
     var toSet = '';
@@ -200,6 +211,14 @@ Element.addMethods({
     moveDown: Backend.Prototype.Element.moveDown,
     when: Backend.Prototype.Element.when,
     evaluate: Backend.Prototype.Element.evaluate
+});
+
+Element.addMethods({
+    click: Backend.Prototype.EventShortcuts.click
+});
+
+Element.addMethods('INPUT', {
+    click: Backend.Prototype.EventShortcuts.click
 });
 
 $B = Backend.Prototype.build;

@@ -23,59 +23,111 @@ Backend.Component = Class.create({
 Backend.Component.created = $H();
 
 /**
- * In-place editor.
- * @class Backend.Component.EditorDecorator
+ * @class Backend.Component.Switcher
+ * @todo Field.DataBound?
  */
-/*Backend.Component.Decorator = Class.create(Backend.Component, {
+Backend.Component.Switcher = Class.create(Backend.Component,
+{
   initialize: function($super, id, config) {
     this.setDefaults({
-      decoration: id+'Decoration',
-      decorator: id+'Decorator',
-      container: id+'Container',
-      switcherOn: id+'Switcher',
-      switcherOff: id+'Switcher',
-      redecorate: true,
-      disable: false
+      template: {
+        inactive: new Template('<li id="#{id}"><a href="#">#{name}</a></li>'),
+        active: new Template('<li id="#{id}" class="chosen">#{name}</a></li>'),
+        activator: new Template('<a class="dashed" id="#{id}-activator" href="#">#{name}</a>')
+      },
+      selected: 0,
+      data: $A()
+    });
+    this.addEvents(['change']);
+    $super(id, config);
+    this.selected = this.config.selected;
+    this.setData(this.config.data);
+  },
+  render: function($super) {
+    this.renderVariants();
+    this.updateActivator();
+  },
+  updateActivator: function() {
+    if ($(this.id+'-activator')) {
+      var d = this.data[this.selected] || {};
+      d = Object.clone(d);
+      d.id = this.id;
+      $(this.id+'-activator').replace(this.config.template.activator.evaluate(d));
+      $(this.id+'-activator').observe('click', function(e) { $(this.id+'-container').show(); return false;}.bind(this));
+    }
+  },
+  renderVariants: function() {
+    if (!Object.isArray(this.data)) return;
+    var mrk = ''
+    var n = 0;
+    this.data.each(function(d) {
+      var id = this.id+'-variant-'+n;
+      if (this.selected == n) {
+        mrk += this.config.template.active.evaluate(Object.extend(Object.clone(d), {id: id}));
+      } else {
+        mrk += this.config.template.inactive.evaluate(Object.extend(Object.clone(d), {id: id}));
+      };
+      n++;
+    }.bind(this));
+    $(this.id).update(mrk);
+    n = 0;
+    this.data.each(function(d) {
+      $(this.id+'-variant-'+n).observe('click', function(e) {
+        this.scope.setValue.bind(this.scope)(this.n);
+        if ($(this.scope.id+'-container')) {
+          $(this.scope.id+'-container').hide();
+        }
+      }.bind({scope: this, n: n++}));
+    }.bind(this));
+  },
+  setValue: function(value) {
+    this.selected = value;
+    this.fire('change', this, value, this.data[value]);
+    this.renderVariants();
+    this.updateActivator();
+  },
+  getValue: function() {
+    return this.data[this.selected];
+  },
+  resetValue: function() {
+    this.setValue(null);
+  },
+  setData: function(data) {
+    this.data = data;
+    this.renderVariants();
+  }
+});
+
+/**
+ * Page navigator class.
+ * @class Backend.Component.PageNavigator
+ */ 
+Backend.Component.Switcher.Page = Class.create(Backend.Component.Switcher, {
+  initialize: function($super, id, config) {
+    this.setDefaults({
+      template: {
+        active: new Template('<span class="chosen" id="#{id}">#{pageNo}</span>'),
+        inactive: new Template('<span id="#{id}"><a href="#">#{pageNo}</a></span>')
+      },
+      data: $A()
     });
     $super(id, config);
   },
-  render: function() {
-    $(this.config.switcherOn).observe('click', function(e) {
-      e.stop();
-      this.switchToDecorator();
-    }.bindAsEventListener(this));
-    if (this.config.redecorate) { 
-      $(this.config.switcherOff).observe('change', function(e) {
-        e.stop();
-        this.switchToDecoration();
-      }.bindAsEventListener(this));
-    }
+  setData: function($super, data) {
+    data = data.map(function(d) { return {pageNo: d}; });
+    $super(data);
   },
-  switchToDecorator: function() {
-    $(this.config.decoration).hide();
-    $(this.config.decorator).show();
+  setValue: function($super, value) {
+    this.selected = value;
+    this.fire('change', this, this.data[value]['pageNo']);
+    this.renderVariants();
+    this.updateActivator();
   },
-  switchToDecoration: function(e) {
-    $(this.config.decoration).show();
-/*    var control = $(this.config.decorator);
-    var value = undefined;
-    
-    if (control.tagName.toLowerCase() == 'select') {
-      if (control.multiple == false) {
-        value = control.options[control.selectedIndex].textContent;
-      }
-    }    
-    if (control.tagName.toLowerCase() == 'input') {
-      if (control.type.toLowerCase() == 'text') {
-        value = update($(this.config.control).getValue());
-      }
-    }
-    $(this.config.container).update(value);
-    control.hide();
-    if (this.config.disableHiddenControl) control.disable();
-    $(this.config.decorator).hide();
-  }    
-});*/
+  getValue: function($super) {
+    value = $super();
+    return  value == undefined ? null : value.pageNo;
+  }
+});
 
 /**
  * Grid class.
@@ -221,14 +273,14 @@ Backend.Component.Grid = Class.create(Backend.Component,
       if (Object.isFunction(c.formatter)) {
         value = c.formatter(row, value, x, y);
       };
+      if (c.boolValues) {
+        value ? value = c.boolValues[0] : value = c.boolValues[1];
+      }     
       if (c.action) {
         var clk = "Backend.Component.created.get('"+this.id+"').fire('dispatchAction', '"+c.action+"', "+x+", "+y+"); return false;";
         value = $B('a', {href: '#', onClick: clk}, value);
         value = $B('a', {href: '#', 'class': this.id+'-action-'+c.action}, value);
       };
-      if (c.boolValues) {
-        value ? value = c.boolValues[0] : value = c.boolValues[1];
-      }     
       if (value == "") {
         value = c.spaceReplacement;
       }

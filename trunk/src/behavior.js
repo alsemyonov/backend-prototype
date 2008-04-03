@@ -45,18 +45,19 @@ Backend.Behavior = Class.create({
  * <div id="exampleTemplate">
  *   <div id="example__n__">
  *      <div>__n__</div>
- *      <div><a href="#" class="serviceRemoveLink">Remove block</a></div>
+ *      <div><a href="#" class="__removeLink">Remove block</a></div>
  *   </div>
  * </div>
  *
  * __n__ constuction is replaced by unique block id.
  * __[id]__ constructions are replaced by increase() argument object properties.
  * Block MUST have id like config.id + '__n__'.
- * serviceRemoveLink is in-block selector to automatic attach block deletion event.
+ * removeLink is block selector to automate attach block deletion event.
  *
  * @config {string} id Block id.
  * @config {template} Template id.
  * @config {container} Container id.
+ * @todo 
  */
 Backend.Behavior.Cloneable = Class.create({
   initialize: function(config) {    
@@ -65,31 +66,35 @@ Backend.Behavior.Cloneable = Class.create({
       template: null,
       container: null
     });
-    this.addEvents(['increase']);
+    this.addEvents(['increase', 'remove']);
     this.configure(config);
     this.count = 0;
   },
   increaseClick: function(e) {
-    e.stop();
     this.increase();
+    e.stop();    
   },
-  removeClick: function(e, n) {
+  decreaseClick: function(e, n) {
+    this.decrease(n);
     e.stop();
-    this.remove(n);
   },
   increase: function(args) {
     args = args || {};
     var n = this.count++;
-    Object.extend(args, {n: n});
-    var service = $(this.config.template).evaluate(args);
-    $(this.config.container).insert(service);
-    $(this.config.id+n).select('.'+this.config.id+'RemoveLink').invoke('observe', 'click', this.removeClick.bindAsEventListener(this, n));
+    args.n = n;
+    var tpl = $(this.config.template).evaluate(args);
+    $(this.config.container).insert(tpl);
+    $(this.config.id+n).select('.__removeLink').invoke('observe', 'click', this.decreaseClick.bindAsEventListener(this, n));
     this.fire('increase', this, n);
   },
-  remove: function(n) {
+  increaseAll: function(n, args) {
+    n.times
+  },
+  decrease: function(n) {
+    this.fire('decrease', this, n);
     $(this.config.id+n).remove();
   },
-  removeAll: function() {
+  decreaseAll: function() {
     $(this.config.container).update('');
     this.count = 0;
   }
