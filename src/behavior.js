@@ -54,6 +54,7 @@ Backend.Behavior.Cloneable = Class.create({
     this.addEvents(['create', 'remove']);
     this.configure(config);
     this.container = this.config.container;
+    this.rowById = $H();
   },
   count: function() {
     return $(this.container).childElements().length;
@@ -61,8 +62,8 @@ Backend.Behavior.Cloneable = Class.create({
   clear: function() {
     $(this.container).update('');
   },
-  getRow: function(n) {
-    return $(this.container).childElements()[n];
+  getRow: function(id) {
+    return this.rowById.get(id);
   },
   _getTemplate: function(tplId) {
     return Object.isString(tplId) ? tplId : this.config.defaultTemplate;
@@ -73,8 +74,11 @@ Backend.Behavior.Cloneable = Class.create({
     id = args.__id = this.count();;
     tpl = $(tpl).evaluate(args);
     $(this.container).insert(tpl);
-    this.getRow(id).tag = args;
-    this.fire('create', this, id, this.getRow(id), this.getRow(id).tag);
+    var row = $(this.container).childElements().last();
+    this.rowById.set(id, row);
+    row.__tag = args;
+    row.__id = id;
+    this.fire('create', this, id, row, row.__tag);
     return id;
   },
   addN: function(n, tplId, args) {
@@ -93,20 +97,23 @@ Backend.Behavior.Cloneable = Class.create({
   insertAll: function(pos, args, tplId) {
     throw new Error("insertAll() not implemented");
   },
-  remove: function(n) {
-    n = n || this.count()-1;
-    var row = this.getRow(n);
-    if (row) {
-      this.fire('remove', this, n, row, row.tag)
-      row.remove();
+  remove: function(id) {
+    if (Object.isUndefined(id)) {
+      var lastRow = $(this.container).childElements().last();
+      id = lastRow ? lastRow.__id : null;
+    }
+    if (id != null) {
+      var row = this.getRow(id);
+      if (row) {
+        this.fire('remove', this, id, row, row.__tag)
+        row.remove();
+      }
     }
   },
   removeN: function(n) {
-    for(var i = 0; i < n; i++) this.remove();
+    n.times(function() {this.remove();}.bind(this), this);
   },
-  removeAll: function(n) {
-    n = n || $A();
-    n.sort().reverse();
-    n.each(this.remove.bind(this));
+  removeAll: function(ids) {
+    ids.each(this.remove, this);
   }
 }, Backend.Configurable, Backend.Observable);

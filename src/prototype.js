@@ -1,6 +1,4 @@
-/** 
- * Namespace creation function.
- */
+/** Namespace creation function. */
 $ns = function(ns) {
   ns = ns.split('.');
   var name = ns.shift();
@@ -15,6 +13,8 @@ $ns = function(ns) {
 
 $ns('Backend.Prototype');  
 
+/** Namespace using function */
+// @todo filename echoing
 $rq = function() {
   $A(arguments).each(function(ns) {
     if (eval('Object.isUndefined(window.'+ns+');')) {
@@ -101,7 +101,10 @@ Backend.Prototype.Element = {
    */
   evaluate: function(el, attrs) {    
     //var elTpl = $(el).innerHtml.replace(/__([\w_]+)__/g, '#{$1}');
-    var elTpl = $(el).innerHTML.unescapeHTML()
+    var elTpl = $(el).innerHTML;
+    if (el.tagName.toLowerCase() == 'textarea') {
+        elTpl = elTpl.unescapeHTML();
+    }
     var tpl = new Template(elTpl);
     return tpl.evaluate(attrs);
   }
@@ -115,12 +118,12 @@ Backend.Prototype.Element.Events = {
     var args = $A(arguments);
     var evt = args.shift(), el = args.shift(), fn = args.shift(), scope = args.shift();
 
-    fn = fn.bindAsEventListener.apply(fn, args);
+    fn = fn.bindAsEventListener(scope, args);
     el.observe(evt, fn);
   },
   click: function() {
     var args = $A(arguments);
-    fn = Backend.Prototype.Element._observe.apply(this, ['click'].concat(args));
+    fn = Backend.Prototype.Element.Events._observe.apply(this, ['click'].concat(args));
   }
 };
 
@@ -232,8 +235,7 @@ Backend.Prototype.Select = {
  
 Element.addMethods("FORM", {
     deserializeElements: Backend.Prototype.Form.deserializeElements,
-    deserialize: Backend.Prototype.Form.deserialize,
-    click: Backend.Prototype.Element.Events.click
+    deserialize: Backend.Prototype.Form.deserialize
 });
 
 Element.addMethods("SELECT", {
@@ -244,5 +246,10 @@ Element.addMethods({
     moveUp: Backend.Prototype.Element.moveUp,
     moveDown: Backend.Prototype.Element.moveDown,
     when: Backend.Prototype.Element.when,
-    evaluate: Backend.Prototype.Element.evaluate
+    evaluate: Backend.Prototype.Element.evaluate,
+    click: Backend.Prototype.Element.Events.click
+});
+
+Element.addMethods("INPUT", {
+    click: Backend.Prototype.Element.Events.click
 });

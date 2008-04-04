@@ -29,6 +29,10 @@
 <div id="row#{__id}"><div id="testDiv2_#{__id}"></div></div>
 </textarea>
 
+<div id="rowTemplateDiv" style="display: none;">
+<div id="exists"></div>
+</div>
+
 <!-- Tests follow -->
 <script type="text/javascript" language="javascript" charset="utf-8">
 // <![CDATA[
@@ -120,11 +124,13 @@
         b.remove(1);
         assert(b.count() == 2);
         assertNullOrUndefined($('testDiv1'));
+
         assertNothingRaised(function() {
             b.remove();
             b.remove();
             b.remove();
         });
+
         assert(b.count() == 0);
         
         b.addN(4);
@@ -159,6 +165,11 @@
         b.addN(3);
         b.removeN(3);
         assert(ns == '210');
+    }},
+    testTemplateFromDiv: function(){with(this) {
+        b = reset();
+        b.add({}, 'rowTemplateDiv');
+        assertNotNullOrUndefined($('exists'));
     }}
   });
 // ]]>
