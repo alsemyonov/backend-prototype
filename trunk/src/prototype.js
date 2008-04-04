@@ -51,9 +51,9 @@ Backend.Prototype.Element = {
    * Moves element down (after next sibling).
    * @todo steps
    */
-  moveDown: function (el, index) {
+  moveDown: function (element, index) {
     index = index || 1;
-    var row = $(el);
+    var row = $(element);
     if (!Object.isUndefined(row)) {
       var nextRow = row.next();
       if (nextRow != null) {
@@ -67,9 +67,9 @@ Backend.Prototype.Element = {
    * Moves element up (before previous sibling).
    * @todo steps
    */
-  moveUp: function (el, index) {
+  moveUp: function (element, index) {
     index = index || 1;
-    var row = $(el);
+    var row = $(element);
     if (!Object.isUndefined(row)) {
       var prevRow = row.previous();
       if (prevRow != null) {
@@ -82,9 +82,9 @@ Backend.Prototype.Element = {
   /**
    * Calls method if element exists.
    */
-  when: function(el, fYes, fNo) {
-    if ($(el)) {
-      return fYes($(el)) || true;
+  when: function(element, fYes, fNo) {
+    if ($(element)) {
+      return fYes($(element)) || true;
     } else {
       return typeof fNo == 'function' ? fNo() : false;
     }
@@ -99,10 +99,10 @@ Backend.Prototype.Element = {
    * <div id="template#{id}"><input type="text" name="txt#{id}"/></div>
    * </textarea>
    */
-  evaluate: function(el, attrs) {    
+  evaluate: function(element, attrs) {    
     //var elTpl = $(el).innerHtml.replace(/__([\w_]+)__/g, '#{$1}');
-    var elTpl = $(el).innerHTML;
-    if (el.tagName.toLowerCase() == 'textarea') {
+    var elTpl = $(element).innerHTML;
+    if (element.tagName.toLowerCase() == 'textarea') {
         elTpl = elTpl.unescapeHTML();
     }
     var tpl = new Template(elTpl);
