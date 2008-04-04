@@ -229,17 +229,10 @@ Backend.Prototype.Select = {
     $select.update(newOptions);
   }
 };
-
-Object.extend(Function.prototype, {
-  listen: function() {
-    
-  }
-});
-  
+ 
 Element.addMethods("FORM", {
     deserializeElements: Backend.Prototype.Form.deserializeElements,
     deserialize: Backend.Prototype.Form.deserialize,
-    createCheckboxHelpers: Backend.Prototype.Form.createCheckboxHelpers,
     click: Backend.Prototype.Element.Events.click
 });
 
