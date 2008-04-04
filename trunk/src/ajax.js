@@ -132,6 +132,7 @@ Backend.Ajax.IframeRequest = Class.create({
         form = $(this._bodyData);
         form.target = 'frame_' + this._req_id;
         form.setAttribute('target', 'frame_' + this._req_id); // in case the other one fails.
+        form.action = this._uri;
         form.submit();
     },
 
@@ -184,10 +185,11 @@ Backend.Ajax.Request = Class.create(Ajax.Request, {
                 url = this.form.action;
             }
         }
-        
+
         if (/^http/.test(url)) {
             this.options.transport = 'iframe';
         }
+
         this.transport = Backend.Ajax.getTransport(this.options.transport);
 
         this.request(url);
