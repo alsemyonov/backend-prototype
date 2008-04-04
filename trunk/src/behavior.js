@@ -1,3 +1,6 @@
+$ns('Backend.Behavior');
+$rq('Backend.Prototype', 'Backend.Observable', 'Backend.Configurable');
+
 /**
  * Behavior base class.
  * @class Backend.Behavior
@@ -39,63 +42,71 @@ Backend.Behavior = Class.create({
 });
 
 /**
- * Implements beahvior of clonable template block.
- * 
- * Example of template block:
- * <div id="exampleTemplate">
- *   <div id="example__n__">
- *      <div>__n__</div>
- *      <div><a href="#" class="__removeLink">Remove block</a></div>
- *   </div>
- * </div>
- *
- * __n__ constuction is replaced by unique block id.
- * __[id]__ constructions are replaced by increase() argument object properties.
- * Block MUST have id like config.id + '__n__'.
- * removeLink is block selector to automate attach block deletion event.
- *
- * @config {string} id Block id.
- * @config {template} Template id.
- * @config {container} Container id.
+ * Implements beahvior of container of clonable template blocks.
  * @todo 
  */
 Backend.Behavior.Cloneable = Class.create({
   initialize: function(config) {    
     this.setDefaults({
-      id: null,
-      template: null,
-      container: null
+      container: null,
+      defaultTemplate: null
     });
-    this.addEvents(['increase', 'remove']);
+    this.addEvents(['create', 'remove']);
     this.configure(config);
-    this.count = 0;
+    this.container = this.config.container;
   },
-  increaseClick: function(e) {
-    this.increase();
-    e.stop();    
+  count: function() {
+    return $(this.container).childElements().length;
   },
-  decreaseClick: function(e, n) {
-    this.decrease(n);
-    e.stop();
+  clear: function() {
+    $(this.container).update('');
   },
-  increase: function(args) {
+  getRow: function(n) {
+    return $(this.container).childElements()[n];
+  },
+  _getTemplate: function(tplId) {
+    return Object.isString(tplId) ? tplId : this.config.defaultTemplate;
+  },
+  add: function(args, tplId) {
+    var tpl = this._getTemplate(tplId);
     args = args || {};
-    var n = this.count++;
-    args.n = n;
-    var tpl = $(this.config.template).evaluate(args);
-    $(this.config.container).insert(tpl);
-    $(this.config.id+n).select('.__removeLink').invoke('observe', 'click', this.decreaseClick.bindAsEventListener(this, n));
-    this.fire('increase', this, n);
+    id = args.__id = this.count();;
+    tpl = $(tpl).evaluate(args);
+    $(this.container).insert(tpl);
+    this.getRow(id).tag = args;
+    this.fire('create', this, id, this.getRow(id), this.getRow(id).tag);
+    return id;
   },
-  increaseAll: function(n, args) {
-    n.times
+  addN: function(n, tplId, args) {
+    n.times(this.add.bind(this, args, tplId));
   },
-  decrease: function(n) {
-    this.fire('decrease', this, n);
-    $(this.config.id+n).remove();
+  addAll: function(args, tplId) {
+    args = args || $A();
+    args.each(function f(r) { this.add(r, tplId); }, this);
   },
-  decreaseAll: function() {
-    $(this.config.container).update('');
-    this.count = 0;
+  insert: function(pos, args, tplId) {
+    throw new Error("insert() not implemented");
+  },
+  insertAllN: function(pos, args, tplId) {
+    throw new Error("insertAllN() not implemented");
+  },  
+  insertAll: function(pos, args, tplId) {
+    throw new Error("insertAll() not implemented");
+  },
+  remove: function(n) {
+    n = n || this.count()-1;
+    var row = this.getRow(n);
+    if (row) {
+      this.fire('remove', this, n, row, row.tag)
+      row.remove();
+    }
+  },
+  removeN: function(n) {
+    for(var i = 0; i < n; i++) this.remove();
+  },
+  removeAll: function(n) {
+    n = n || $A();
+    n.sort().reverse();
+    n.each(this.remove.bind(this));
   }
 }, Backend.Configurable, Backend.Observable);

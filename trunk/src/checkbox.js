@@ -1,18 +1,17 @@
-/**
- * Custom checkbox serializer. 
- */
-Form.Element.Serializers.inputSelector = function(element, value) {
-  if (Object.isUndefined(value)) {
-    if (element.value == "") {
-      return element.checked;
+function() {
+  Form.Element.Serializers.inputSelector = function(element, value) {
+    if (Object.isUndefined(value)) {
+      if (element.value == "") {
+        return element.checked;
+      } else {
+        return element.checked ? element.value : null;
+      }
     } else {
-      return element.checked ? element.value : null;
+      if (element.value == "") {
+        element.checked = !!value;
+      } else {
+        element.checked = element.value == value;
+      }
     }
-  } else {
-    if (element.value == "") {
-      element.checked = !!value;
-    } else {
-      element.checked = element.value == value;
-    }
-  }
-};
+  };
+}

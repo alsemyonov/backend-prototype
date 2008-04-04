@@ -1,5 +1,27 @@
-/*if (Object.isUndefined(window.Backend))*/ Backend = {};
-Backend.Prototype = {};
+/** 
+ * Namespace creation function.
+ */
+$ns = function(ns) {
+  ns = ns.split('.');
+  var name = ns.shift();
+  var cmd = '';
+
+  for(n = 0; n < ns.length+1; n++) {
+    cmd += 'if (Object.isUndefined(window.'+name+')) window.'+name+'={};';
+    name = name+'.'+ns[n];    
+  }
+  eval(cmd);
+};
+
+$ns('Backend.Prototype');  
+
+$rq = function() {
+  $A(arguments).each(function(ns) {
+    if (eval('Object.isUndefined(window.'+ns+');')) {
+      throw new Error(ns + ' is required');
+    }
+  });
+};
 
 /** JsonML builder function. */
 Backend.Prototype.build = function(name, attrs, children, text) {
@@ -18,6 +40,7 @@ Backend.Prototype.build = function(name, attrs, children, text) {
 
   return ret;
 };
+$B = Backend.Prototype.build;
 
 /**
  * Element extensions.
@@ -70,12 +93,34 @@ Backend.Prototype.Element = {
   /**
    * Creates element usesing another element content as template.
    * Useful to create cloneable blocks.
-   * Replace #{id} constructions with __id__.
+   * 
+   * Use this as template container:
+   * <textarea id="container" style="display: none;" disabled="true">
+   * <div id="template#{id}"><input type="text" name="txt#{id}"/></div>
+   * </textarea>
    */
-  evaluate: function(el, attrs) {
-    var elTpl = $(el).innerHTML.replace(/__([\w_]+)__/g, '#{$1}');
-    var tpl = new Template(elTpl);    
+  evaluate: function(el, attrs) {    
+    //var elTpl = $(el).innerHtml.replace(/__([\w_]+)__/g, '#{$1}');
+    var elTpl = $(el).innerHTML.unescapeHTML()
+    var tpl = new Template(elTpl);
     return tpl.evaluate(attrs);
+  }
+};
+
+/**
+ * Event observation functions.
+ */
+Backend.Prototype.Element.Events = {
+  _observe: function() {
+    var args = $A(arguments);
+    var evt = args.shift(), el = args.shift(), fn = args.shift(), scope = args.shift();
+
+    fn = fn.bindAsEventListener.apply(fn, args);
+    el.observe(evt, fn);
+  },
+  click: function() {
+    var args = $A(arguments);
+    fn = Backend.Prototype.Element._observe.apply(this, ['click'].concat(args));
   }
 };
 
@@ -144,17 +189,6 @@ Backend.Prototype.Form = {
 };
 
 /**
- * Event observation functions.
- */
-Backend.Prototype.EventShortcuts = {
-    click: function(element, fn) {
-        element.observe('click', function(e, fn) {
-            fn(e);
-        }.bindAsEventListener(this, fn));
-    }
-};
-
-/**
  * <SELECT> tag extensions.
  * @class Backend.Prototype.Select
  */
@@ -195,11 +229,18 @@ Backend.Prototype.Select = {
     $select.update(newOptions);
   }
 };
-   
+
+Object.extend(Function.prototype, {
+  listen: function() {
+    
+  }
+});
+  
 Element.addMethods("FORM", {
     deserializeElements: Backend.Prototype.Form.deserializeElements,
     deserialize: Backend.Prototype.Form.deserialize,
-    createCheckboxHelpers: Backend.Prototype.Form.createCheckboxHelpers
+    createCheckboxHelpers: Backend.Prototype.Form.createCheckboxHelpers,
+    click: Backend.Prototype.Element.Events.click
 });
 
 Element.addMethods("SELECT", {
@@ -212,13 +253,3 @@ Element.addMethods({
     when: Backend.Prototype.Element.when,
     evaluate: Backend.Prototype.Element.evaluate
 });
-
-Element.addMethods({
-    click: Backend.Prototype.EventShortcuts.click
-});
-
-Element.addMethods('INPUT', {
-    click: Backend.Prototype.EventShortcuts.click
-});
-
-$B = Backend.Prototype.build;

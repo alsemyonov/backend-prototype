@@ -1,5 +1,4 @@
-// !!
-//Backend = {};
+$ns('Backend.Observable');
 
 /**
  * Observable mix-in.

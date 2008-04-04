@@ -8,12 +8,6 @@
   <script src="../lib/unittest.js" type="text/javascript"></script>
   <script src="../../backend-debug.js?load=prototype" type="text/javascript"></script>
   <link rel="stylesheet" href="../test.css" type="text/css" />
-  <style type="text/css" media="screen">
-  /* <![CDATA[ */
-    #testcss1 { font-size:11px; color: #f00; }
-    #testcss2 { font-size:12px; color: #0f0; display: none; }
-  /* ]]> */
-  </style>
 </head>
 <body>
 <h1>Backend Unit test file</h1>
@@ -25,16 +19,16 @@
 <div id="testlog"> </div>
 
 <!-- Test DIV's -->
-<div id="ifExists" style="display: none;"></div>
+<div id="testWhen" style="display: none;"></div>
 
 <div>
 <div id="up" style="display: none;"></div>
 <div id="down" style="display: none;"></div>
 </div>
 
-<div id="container" style="display: none;">
-<div id="template__id__"><input type="text" name="txt__id__"/></div>
-</div>
+<textarea id="container" style="display: none;" disabled="true">
+<div id="template#{id}"><input type="text" name="txt#{id}"/></div>
+</textarea>
 
 <form id="testForm" style="display: none;">
     <input type="text" name="f1" id="f1"></input>
@@ -70,6 +64,17 @@
 <script type="text/javascript" language="javascript" charset="utf-8">
 // <![CDATA[
   new Test.Unit.Runner({
+    testNs: function() {with(this) {
+        $ns('TestNS');
+        $ns('TestNS.a');
+        $ns('TestNS.a.b');
+        assertNotUndefined(window.TestNS);
+        assertNotUndefined(window.TestNS.a);
+        assertNotUndefined(window.TestNS.a.b);
+        assertRaise('SyntaxError', function() { $ns('TestNS.1'); } );
+        assertRaise('SyntaxError', function() { $ns('TestNS.)(*)(*!@#'); } );
+    }},
+
     testBuild: function() {with(this) {
         assert($B('b') == '<b></b>');
         assert($B('b', 'test') == '<b>test</b>');
@@ -81,8 +86,8 @@
     }},
 
     // @todo ifExists ifNo
-    testIfExists: function(){with(this) {
-        assert(Element.when('ifExists', function() { return true; }));
+    testWhen: function(){with(this) {
+        assert(Element.when('testWhen', function() { return true; }));
         assert(!Element.when('nonExistent', function() { }));
     }},
     testMoveUp: function(){with(this) {
@@ -98,7 +103,7 @@
 
     // @todo IE, Opera
     testEvaluate: function(){with(this) {
-        var s = '<div id="template3"><input name="txt3" type="text"></div>';
+        var s = '<div id="template3"><input type="text" name="txt3"/></div>';
         assert($('container').evaluate({id: 3}).strip().toLowerCase() == s.strip().toLowerCase());
     }},
 
@@ -136,7 +141,7 @@
         assert($('_undef').value == '_intact');
     }},
 
-/*    testFlagsGetValue: function() {with(this) {
+/*    testFlagsGetValue: function() {with(this) {      
         var f = $('testForm2').serialize(true);
 
         assert(f.cb1 == true);
@@ -158,10 +163,9 @@
         assert($('cb3').getValue() == true);
         assert($('cb4').getValue() == null);
         assert($('cb5').getValue() == null);
+    }},*/
 
-        // @todo
-    }}, */
-
+    // selects are shitty. rewrite with class code.
     testSelect: function() {with(this) {
         var options = [{id: 1, name: 'xxx'}, {id: 2, name: 'yyy', dumb: 'ccc'}, {id: 3, _name: 'xxx'}, {id: 4, name: 'fff'}];
         var before = [{id: '', name: 'S'}];
