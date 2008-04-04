@@ -1,0 +1,167 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Prototype Unit test file</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <script src="../../ext/prototype.js" type="text/javascript"></script>
+  <script src="../lib/unittest.js" type="text/javascript"></script>
+  <script src="../../backend-debug.js?load=prototype,observable,configurable,behavior" type="text/javascript"></script>
+  <link rel="stylesheet" href="../test.css" type="text/css" />
+</head>
+<body>
+<h1>Backend Unit test file</h1>
+<p>
+  Test of utility functions in behavior.js
+</p>
+
+<!-- Log output -->
+<div id="testlog"> </div>
+
+<!-- Test DIV's -->
+<div id="testBehavior" style="display: none;"></div>
+
+<textarea id="rowTemplate1" style="display: none;" disabled="yes">
+<div id="row#{__id}"><div id="testDiv#{__id}"></div><div id="#{xId}"></div></div>
+</textarea>
+
+<textarea id="rowTemplate2" style="display: none;" disabled="yes">
+<div id="row#{__id}"><div id="testDiv2_#{__id}"></div></div>
+</textarea>
+
+<!-- Tests follow -->
+<script type="text/javascript" language="javascript" charset="utf-8">
+// <![CDATA[
+
+  function reset() {
+    $('testBehavior').update('');
+    var b = new Backend.Behavior.Cloneable({
+      defaultTemplate: 'rowTemplate1',
+      container: 'testBehavior'
+    });
+    return b;
+  };   
+
+  new Test.Unit.Runner({
+    testAddClearCount: function() {with(this) {
+        b = reset();
+
+        assert(b.count() == 0);
+        b.add();
+        assert(b.count() == 1);
+        b.clear();
+        assert(b.count() == 0);
+    }},
+    testGetRow: function() {with(this) {
+        b = reset();
+
+        b.add();
+        assertNotUndefined(b.getRow(0));
+        assert(b.getRow(0).tagName.toLowerCase() == 'div');
+        assertNotNullOrUndefined($('testDiv0'));
+        assertNullOrUndefined(b.getRow(1));
+    }},
+    testAdd: function() {with(this) {
+        b = reset();
+
+        assert(b.count() == 0);
+        b.add();
+        assert(b.count() == 1);
+        assertNotNullOrUndefined($('testDiv0'));
+
+        b.add();
+        assert(b.count() == 2);
+        assertNotNullOrUndefined($('testDiv1'));
+
+        b.add({n: 5});
+        assert(b.count() == 3);
+        assertNotNullOrUndefined($('testDiv2'));
+
+        b.add({xId: 'nnn'});
+        assert(b.count() == 4);
+        assertNotNullOrUndefined($('nnn'));
+
+        b.add({}, 'rowTemplate2');
+        assert(b.count() == 5);
+        assertNotNullOrUndefined($('testDiv2_4'));
+
+        b.add({xId: 'xxx'}, 'rowTemplate1');
+        assert(b.count() == 6);
+        assertNotNullOrUndefined($('testDiv5'));
+        assertNotNullOrUndefined($('xxx'));
+    }},
+    testAddAll: function() {with(this) {
+        b = reset();
+
+        b.addN(3);
+        assert(b.count() == 3);
+        assertNotNullOrUndefined($('testDiv2'));
+
+        b.addN(3, 'rowTemplate2');
+        assert(b.count() == 6);
+        assertNotNullOrUndefined($('testDiv2_5'));
+
+
+        b.addAll([{xId: 'xxx1'}, {xId: 'xxx2'}]);
+        assert(b.count() == 8);
+        assertNotNullOrUndefined($('testDiv7'));
+        assertNotNullOrUndefined($('xxx1'));
+        assertNotNullOrUndefined($('xxx2'));
+    }},
+    testRemoveClear: function() {with(this) {
+        b = reset();
+    
+        b.addN(4);
+
+        assert(b.count() == 4);
+        b.remove();
+        assert(b.count() == 3);
+        assertNullOrUndefined($('testDiv3'));
+        b.remove(1);
+        assert(b.count() == 2);
+        assertNullOrUndefined($('testDiv1'));
+        assertNothingRaised(function() {
+            b.remove();
+            b.remove();
+            b.remove();
+        });
+        assert(b.count() == 0);
+        
+        b.addN(4);
+        b.removeAll([3,1]);
+        assert(b.count() == 2);
+        assertNullOrUndefined($('testDiv1'));        
+
+        b.clear();
+        b.addN(4);
+        b.removeN(4);
+        assert(b.count() == 0);        
+    }},
+    testFireCreate: function() {with(this) {
+        b = reset();
+        b.on('create', function(sender, n, row, data) {
+            row.id = "created"+n;
+        });
+
+        b.add();
+        assertNotNullOrUndefined($('created0'));
+
+        b.addN(3);
+        assertNotNullOrUndefined($('created2'));
+    }},
+    testFireRemove: function() {with(this) {
+        b = reset();
+        var ns = '';
+        b.on('remove', function(sender, n, row, data) {
+            ns += n;
+        });
+
+        b.addN(3);
+        b.removeN(3);
+        assert(ns == '210');
+    }}
+  });
+// ]]>
+</script>
+</body>
+</html>

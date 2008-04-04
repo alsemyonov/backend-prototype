@@ -1,3 +1,5 @@
+$ns('Backend.Validator');
+
 /**
  * @todo config с классами.
  * Client-side validator class.

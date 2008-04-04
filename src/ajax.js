@@ -23,13 +23,10 @@
     // another way
     
     $('SomeForm').submitThroughIframe();
-
-1. simulate other verbs
-2. caching (not for files).
-
 *---------------------------------------------------------------------------*/
 
-//if (!window.Backend) var Backend = {};
+$ns('Backend.Ajax');
+
 Backend.Ajax = {
     iframeRequests: {},
     cache: $H(),
@@ -241,8 +238,8 @@ Backend.Ajax.Request = Class.create(Ajax.Request, {
             if (!this.options.cache) {
                 this.transport.send(this.body);
             } else {
-                if (this.isCached(this)) {
-                    this.transport = this.getCached(this);
+                if (this._isCached(this)) {
+                    this.transport = this._getCached(this);
                     this.onStateChange();
                 } else {
                     this.transport.send(this.body);
@@ -259,23 +256,23 @@ Backend.Ajax.Request = Class.create(Ajax.Request, {
         }
     },
 
-    getCacheKey: function(request) {
+    _getCacheKey: function(request) {
         // I should implement more optimal alghoritm.
         return request.url + Object.toJSON(request.parameters);
     },
 
-    cache: function(response) {
-        var cacheKey = this.getCacheKey(response.request);
+    _cache: function(response) {
+        var cacheKey = this._getCacheKey(response.request);
         Backend.Ajax.cache.set(cacheKey, response);
     },
 
-    isCached: function(request) {
-        var cacheKey = this.getCacheKey(request);
+    _isCached: function(request) {
+        var cacheKey = this._getCacheKey(request);
         return Backend.Ajax.cache.keys().member(cacheKey);
     },
 
-    getCached: function(request) {
-        var cacheKey = this.getCacheKey(request);
+    _getCached: function(request) {
+        var cacheKey = this._getCacheKey(request);
         return Backend.Ajax.cache.get(cacheKey);
     },
 
@@ -284,7 +281,7 @@ Backend.Ajax.Request = Class.create(Ajax.Request, {
         if (this.options.cache) {
             var state = Ajax.Request.Events[readyState], response = new Ajax.Response(this);
             if (state == 'Complete') {
-                this.cache(response);
+                this._cache(response);
             }
         }
     }

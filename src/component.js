@@ -1,4 +1,4 @@
-//if (window.Backend == undefined) Backend = {};
+$ns('Backend.Component');
 
 /**
  * Base component.

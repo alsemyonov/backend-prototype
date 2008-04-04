@@ -1,3 +1,5 @@
+$ns('Backend.Configurable');
+
 /*  
  * @class Backend.Configurable
  *--------------------------------------------------------------------------*/
