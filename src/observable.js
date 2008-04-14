@@ -3,6 +3,7 @@ $ns('Backend.Observable');
 /**
  * Observable mix-in.
  * @static
+ * @todo on: scope, args
  */
 Backend.Observable = {
     /** Adds event */

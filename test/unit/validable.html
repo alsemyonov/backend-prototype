@@ -19,13 +19,13 @@
 <div id="testlog"> </div>
 
 <!-- Test DIV's -->
-<form id="form">
+<form id="form" style="display: none;">
 <input type="text" name="f1" value="" id="f1"/>
 <input type="text" name="f2" value="" id="f2"/>
 <input type="checkbox" name="f3" value="" id="f3"/>
 <input type="radio" name="f4" id="f4_1" value=""/>
 <input type="radio" name="f4" id="f4_2" value=""/>
-<select name="f5">
+<select name="f5" id="f5">
     <option value="1">1</option>
     <option value="2">1</option>
 </select>
@@ -38,6 +38,8 @@
 </textarea>
 </form>
 
+<div id="f5_msg" style="display: none;">aaa</div>
+
 <!-- Tests follow -->
 <script type="text/javascript" language="javascript" charset="utf-8">
 // <![CDATA[
@@ -47,12 +49,12 @@
       $('f1').validate('notnull');
       $('f1').validate('notblank');
       $('f2').validate('notnull', {errorClass: 'validation-shit'});
-      assert($('f1').vRules.length == 2);
-      assert($('f1').vRules[0][0] == 'notnull');
-      assert($('f1').vRules[1][0] == 'notblank');
-      assert($('f2').vRules[0][0] == 'notnull');
-      assert($('f2').vRules[0][1].errorClass == 'validation-shit');
-      assert($('f2').vRules[0][1].test == 1);
+      assert($('f1').rules.keys().length == 2);
+      assertNotNullOrUndefined($('f1').rules.get('notnull'));
+      assertNotNullOrUndefined($('f1').rules.get('notblank'));
+      assertNotNullOrUndefined($('f2').rules.get('notnull'));
+      assert($('f2').rules.get('notnull').errorClass == 'validation-shit');
+      assert($('f2').rules.get('notnull').test == 1);
 
     }},
     testNotNullNotBlank: function() {with(this) {
@@ -62,6 +64,11 @@
       assert(!$('f1').check());
       $('f1').setValue('test');
       assert($('f1').check());
+    }},
+    testByNameCheck: function() {with(this) {
+      $('f1').setValue(' ');
+      assert($('f1').check('notnull'));
+      assert(!$('f1').check('notblank'));
     }},
     testIsChecked: function() {with(this) {
       $('f3').checked = false;
@@ -89,6 +96,20 @@
 
       $('op1').selected = true;
       assert($('f6').check());
+    }},
+    testShowMessage: function() {with(this) {
+      $('f5').showMessage('notnull');
+      assert(!$('f5').hasClassName('validation-error'));
+      $('f5').validate('notnull', {message: 'f5_msg'});
+      $('f5').showMessage('notnull');
+      assert($('f5').hasClassName('validation-error'));
+      assertVisible($('f5_msg'));
+    
+    }},
+    testHideMessage: function() {with(this) {
+      $('f5').hideMessage('notnull');
+      assert(!$('f5').hasClassName('validation-error'));
+      assertNotVisible($('f5_msg'));
     }}
   });
 // ]]>
