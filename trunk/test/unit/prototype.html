@@ -48,6 +48,8 @@
     <input type="radio" name="f10" id="f10_1" value="1"/>
     <input type="radio" name="f10" id="f10_2" value="2"/>
     <input type="radio" name="f10" id="f10_3" value="3"/>
+    <select name="f11[][name]" id="f11_1"><option value="one">1</option><option value="two">2</option><option value="three">3</option></select>
+    <select name="f11[][name]" id="f11_2"><option value="one">1</option><option value="two">2</option><option value="three">3</option></select>
     <input type="text" name="_undef" id="_undef" value="_intact"/>
     <!--select name="f10" id="f10" multiple="yes"><option value="1"></option><option value="2"></option></select-->
 </form>
@@ -118,7 +120,8 @@
             f7: {one: [9,10]}, 
             f8: {one: {one: 11, two: 12}}, 
             f9: [{one: 13, two: 14}, {one: 15, two: 16}],
-            f10: 2
+            f10: 2,
+            f11: [{name: 'one'}, {name: 'three'}]
         };
 
         $('testForm').deserialize(testData);
@@ -138,6 +141,8 @@
         assert($('f9_1_one').value == 13);
         assert($('f9_2_two').value == 16);
         assert($('f10_2').checked == true);
+        assert($('f11_1').value == 'one');
+        assert($('f11_2').value == 'three');
         assert($('_undef').value == '_intact');
     }},
 

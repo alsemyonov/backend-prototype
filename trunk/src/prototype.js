@@ -23,7 +23,7 @@ $rq = function() {
   });
 };
 
-/** JsonML builder function. */
+/** JsonML-like builder function. */
 Backend.Prototype.build = function(name, attrs, children, text) {
   name = name.toLowerCase(); 
   
@@ -84,7 +84,7 @@ Backend.Prototype.Element = {
    */
   when: function(element, fYes, fNo) {
     if ($(element)) {
-      return fYes($(element)) || true;
+      return typeof fYes == 'function' ? fYes($(element)) : true;
     } else {
       return typeof fNo == 'function' ? fNo() : false;
     }
@@ -117,14 +117,25 @@ Backend.Prototype.Element.Events = {
   _observe: function() {
     var args = $A(arguments);
     var evt = args.shift(), el = args.shift(), fn = args.shift(), scope = args.shift();
-
-    fn = fn.bindAsEventListener(scope, args);
+    fn = fn.bindAsEventListener.apply(fn, [scope].concat(args));
     el.observe(evt, fn);
   },
-  click: function() {
+  onClick: function() {
     var args = $A(arguments);
     fn = Backend.Prototype.Element.Events._observe.apply(this, ['click'].concat(args));
-  }
+  },
+  onChange: function() {
+    var args = $A(arguments);
+    fn = Backend.Prototype.Element.Events._observe.apply(this, ['change'].concat(args));    
+  },
+  onFocus: function() {
+    var args = $A(arguments);
+    fn = Backend.Prototype.Element.Events._observe.apply(this, ['focus'].concat(args));    
+  },
+  onBlur: function() {
+    var args = $A(arguments);
+    fn = Backend.Prototype.Element.Events._observe.apply(this, ['blur'].concat(args));    
+  }  
 };
 
 /**
@@ -234,22 +245,29 @@ Backend.Prototype.Select = {
 };
  
 Element.addMethods("FORM", {
-    deserializeElements: Backend.Prototype.Form.deserializeElements,
-    deserialize: Backend.Prototype.Form.deserialize
-});
-
-Element.addMethods("SELECT", {
-    setOptions: Backend.Prototype.Select.setOptions
+  deserializeElements: Backend.Prototype.Form.deserializeElements,
+  deserialize: Backend.Prototype.Form.deserialize
 });
 
 Element.addMethods({
-    moveUp: Backend.Prototype.Element.moveUp,
-    moveDown: Backend.Prototype.Element.moveDown,
-    when: Backend.Prototype.Element.when,
-    evaluate: Backend.Prototype.Element.evaluate,
-    click: Backend.Prototype.Element.Events.click
+  moveUp: Backend.Prototype.Element.moveUp,
+  moveDown: Backend.Prototype.Element.moveDown,
+  when: Backend.Prototype.Element.when,
+  evaluate: Backend.Prototype.Element.evaluate,
+  onClick: Backend.Prototype.Element.Events.onClick
 });
 
 Element.addMethods("INPUT", {
-    click: Backend.Prototype.Element.Events.click
+  onClick: Backend.Prototype.Element.Events.onClick,
+  onChange: Backend.Prototype.Element.Events.onClick,
+  onFocus: Backend.Prototype.Element.Events.onClick,
+  onBlur: Backend.Prototype.Element.Events.onClick
+});
+
+Element.addMethods("SELECT", {
+  setOptions: Backend.Prototype.Select.setOptions,
+  onClick: Backend.Prototype.Element.Events.onClick,
+  onChange: Backend.Prototype.Element.Events.onChange,
+  onFocus: Backend.Prototype.Element.Events.onFocus,
+  onBlur: Backend.Prototype.Element.Events.onBlur
 });

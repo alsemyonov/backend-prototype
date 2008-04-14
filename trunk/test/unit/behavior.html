@@ -170,6 +170,16 @@
         b = reset();
         b.add({}, 'rowTemplateDiv');
         assertNotNullOrUndefined($('exists'));
+    }},
+    testReplace: function(){with(this) {
+        b = reset();
+        b.add();
+        b.add();
+        b.add();
+        b.replace(1, {}, 'rowTemplate2');
+        assert(b.count() == 3);
+        assertNullOrUndefined($('testDiv_1'));
+        assertNotNullOrUndefined($('testDiv2_1'));
     }}
   });
 // ]]>

@@ -1,6 +1,6 @@
 /*  Backend Prototype JavaScript enchanser, version 0.0.1
  *  (c) 2007 roTuKa
- *  (c) 2008, gzigzigzi (caching)
+ *  (c) 2008, gzigzigzi (caching) - shit?
  *--------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------*
@@ -23,6 +23,8 @@
     // another way
     
     $('SomeForm').submitThroughIframe();
+    
+    $('element').load(url, options);
 *---------------------------------------------------------------------------*/
 
 $ns('Backend.Ajax');
